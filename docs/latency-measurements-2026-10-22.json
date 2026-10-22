@@ -1,0 +1,412 @@
+{
+  "date": "2026-10-22",
+  "timezone": "UTC",
+  "roomId": "E4AB8058",
+  "release": "20261022-diagnostics-2232",
+  "notes": [
+    "User confirmed the controller was open on their phone over 4G at approximately 21:38:46 UTC.",
+    "One earlier desktop controller remained connected in the background; hidden reports are excluded by the server.",
+    "Role-level reports do not prove device identity; the live test timing was confirmed by the user.",
+    "Round trips include browser scheduling and can be affected by reconnects/background transitions. These are not touch-to-photon measurements."
+  ],
+  "windows": [
+    {
+      "utc": "2026-10-22T21:38:40.461Z",
+      "playerReports": 2,
+      "hiddenPlayerReports": 1,
+      "reconnects": 0,
+      "playerRttMs": {
+        "count": 6,
+        "retained": 6,
+        "p50": 118,
+        "p95": 142,
+        "max": 142
+      },
+      "playerInputAckMs": {
+        "count": 5,
+        "retained": 5,
+        "p50": 136,
+        "p95": 233,
+        "max": 233
+      },
+      "screenRttMs": {
+        "count": 10,
+        "retained": 10,
+        "p50": 945,
+        "p95": 1975,
+        "max": 1975
+      },
+      "screenFrameMs": {
+        "count": 128,
+        "retained": 128,
+        "p50": 8.3,
+        "p95": 13.3,
+        "max": 15.7
+      },
+      "tickMs": {
+        "count": 611,
+        "retained": 611,
+        "p50": 0,
+        "p95": 0,
+        "max": 0.2
+      },
+      "inputWaitMs": {
+        "count": 4,
+        "retained": 4,
+        "p50": 7.6,
+        "p95": 11.4,
+        "max": 11.4
+      }
+    },
+    {
+      "utc": "2026-10-22T21:39:00.470Z",
+      "playerReports": 2,
+      "hiddenPlayerReports": 1,
+      "reconnects": 1,
+      "playerRttMs": {
+        "count": 10,
+        "retained": 10,
+        "p50": 140,
+        "p95": 693,
+        "max": 693
+      },
+      "playerInputAckMs": {
+        "count": 9,
+        "retained": 9,
+        "p50": 169,
+        "p95": 627,
+        "max": 627
+      },
+      "screenRttMs": {
+        "count": 10,
+        "retained": 10,
+        "p50": 660,
+        "p95": 5261,
+        "max": 5261
+      },
+      "screenFrameMs": {
+        "count": 128,
+        "retained": 128,
+        "p50": 8.2,
+        "p95": 11.5,
+        "max": 22.4
+      },
+      "tickMs": {
+        "count": 615,
+        "retained": 615,
+        "p50": 0,
+        "p95": 0,
+        "max": 0.4
+      },
+      "inputWaitMs": {
+        "count": 9,
+        "retained": 9,
+        "p50": 5.3,
+        "p95": 15.4,
+        "max": 15.4
+      }
+    },
+    {
+      "utc": "2026-10-22T21:40:30.466Z",
+      "playerReports": 1,
+      "hiddenPlayerReports": 0,
+      "reconnects": 1,
+      "playerRttMs": {
+        "count": 4,
+        "retained": 4,
+        "p50": 2087,
+        "p95": 3028,
+        "max": 3028
+      },
+      "playerInputAckMs": {
+        "count": 3,
+        "retained": 3,
+        "p50": 2390,
+        "p95": 3208,
+        "max": 3208
+      },
+      "screenRttMs": {
+        "count": 8,
+        "retained": 8,
+        "p50": 2835,
+        "p95": 3511,
+        "max": 3511
+      },
+      "screenFrameMs": {
+        "count": 128,
+        "retained": 128,
+        "p50": 8.3,
+        "p95": 10.8,
+        "max": 15.6
+      },
+      "tickMs": {
+        "count": 612,
+        "retained": 612,
+        "p50": 0,
+        "p95": 0,
+        "max": 1.7
+      },
+      "inputWaitMs": {
+        "count": 4,
+        "retained": 4,
+        "p50": 6.2,
+        "p95": 13.3,
+        "max": 13.3
+      }
+    },
+    {
+      "utc": "2026-10-22T21:40:40.458Z",
+      "playerReports": 1,
+      "hiddenPlayerReports": 0,
+      "reconnects": 0,
+      "playerRttMs": {
+        "count": 2,
+        "retained": 2,
+        "p50": 3680,
+        "p95": 4683,
+        "max": 4683
+      },
+      "playerInputAckMs": null,
+      "screenRttMs": {
+        "count": 13,
+        "retained": 13,
+        "p50": 3164,
+        "p95": 5118,
+        "max": 5118
+      },
+      "screenFrameMs": {
+        "count": 128,
+        "retained": 128,
+        "p50": 8.3,
+        "p95": 9.1,
+        "max": 15.5
+      },
+      "tickMs": {
+        "count": 614,
+        "retained": 614,
+        "p50": 0,
+        "p95": 0,
+        "max": 0.2
+      },
+      "inputWaitMs": {
+        "count": 6,
+        "retained": 6,
+        "p50": 3.2,
+        "p95": 12.7,
+        "max": 12.7
+      }
+    },
+    {
+      "utc": "2026-10-22T21:40:50.470Z",
+      "playerReports": 2,
+      "hiddenPlayerReports": 1,
+      "reconnects": 0,
+      "playerRttMs": {
+        "count": 12,
+        "retained": 12,
+        "p50": 1210,
+        "p95": 2593,
+        "max": 2593
+      },
+      "playerInputAckMs": {
+        "count": 6,
+        "retained": 6,
+        "p50": 811,
+        "p95": 2696,
+        "max": 2696
+      },
+      "screenRttMs": null,
+      "screenFrameMs": null,
+      "tickMs": {
+        "count": 615,
+        "retained": 615,
+        "p50": 0,
+        "p95": 0,
+        "max": 0.2
+      },
+      "inputWaitMs": {
+        "count": 5,
+        "retained": 5,
+        "p50": 9.4,
+        "p95": 15,
+        "max": 15
+      }
+    },
+    {
+      "utc": "2026-10-22T21:41:00.472Z",
+      "playerReports": 1,
+      "hiddenPlayerReports": 0,
+      "reconnects": 0,
+      "playerRttMs": {
+        "count": 8,
+        "retained": 8,
+        "p50": 630,
+        "p95": 2576,
+        "max": 2576
+      },
+      "playerInputAckMs": {
+        "count": 5,
+        "retained": 5,
+        "p50": 1641,
+        "p95": 2402,
+        "max": 2402
+      },
+      "screenRttMs": {
+        "count": 9,
+        "retained": 9,
+        "p50": 2058,
+        "p95": 2863,
+        "max": 2863
+      },
+      "screenFrameMs": {
+        "count": 128,
+        "retained": 128,
+        "p50": 8.3,
+        "p95": 9.2,
+        "max": 9.8
+      },
+      "tickMs": {
+        "count": 615,
+        "retained": 615,
+        "p50": 0,
+        "p95": 0.1,
+        "max": 0.3
+      },
+      "inputWaitMs": {
+        "count": 6,
+        "retained": 6,
+        "p50": 8.2,
+        "p95": 9.7,
+        "max": 9.7
+      }
+    },
+    {
+      "utc": "2026-10-22T21:41:10.467Z",
+      "playerReports": 1,
+      "hiddenPlayerReports": 0,
+      "reconnects": 0,
+      "playerRttMs": {
+        "count": 10,
+        "retained": 10,
+        "p50": 272,
+        "p95": 2877,
+        "max": 2877
+      },
+      "playerInputAckMs": {
+        "count": 7,
+        "retained": 7,
+        "p50": 536,
+        "p95": 2074,
+        "max": 2074
+      },
+      "screenRttMs": {
+        "count": 8,
+        "retained": 8,
+        "p50": 257,
+        "p95": 1116,
+        "max": 1116
+      },
+      "screenFrameMs": {
+        "count": 128,
+        "retained": 128,
+        "p50": 8.3,
+        "p95": 9,
+        "max": 10.2
+      },
+      "tickMs": {
+        "count": 618,
+        "retained": 618,
+        "p50": 0,
+        "p95": 0.1,
+        "max": 0.3
+      },
+      "inputWaitMs": {
+        "count": 6,
+        "retained": 6,
+        "p50": 5.3,
+        "p95": 15.2,
+        "max": 15.2
+      }
+    },
+    {
+      "utc": "2026-10-22T21:41:30.469Z",
+      "playerReports": 1,
+      "hiddenPlayerReports": 0,
+      "reconnects": 0,
+      "playerRttMs": {
+        "count": 9,
+        "retained": 9,
+        "p50": 316,
+        "p95": 2364,
+        "max": 2364
+      },
+      "playerInputAckMs": {
+        "count": 5,
+        "retained": 5,
+        "p50": 372,
+        "p95": 2683,
+        "max": 2683
+      },
+      "screenRttMs": {
+        "count": 9,
+        "retained": 9,
+        "p50": 388,
+        "p95": 3151,
+        "max": 3151
+      },
+      "screenFrameMs": {
+        "count": 128,
+        "retained": 128,
+        "p50": 8.3,
+        "p95": 9.2,
+        "max": 9.7
+      },
+      "tickMs": {
+        "count": 618,
+        "retained": 618,
+        "p50": 0,
+        "p95": 0.1,
+        "max": 0.4
+      },
+      "inputWaitMs": {
+        "count": 7,
+        "retained": 7,
+        "p50": 10.5,
+        "p95": 14.7,
+        "max": 14.7
+      }
+    }
+  ],
+  "connectionEvents": [
+    {
+      "utc": "2026-10-22T21:36:35.143Z",
+      "event": "connection_join",
+      "code": null
+    },
+    {
+      "utc": "2026-10-22T21:38:28.875Z",
+      "event": "connection_join",
+      "code": null
+    },
+    {
+      "utc": "2026-10-22T21:38:48.388Z",
+      "event": "connection_leave",
+      "code": 4002
+    },
+    {
+      "utc": "2026-10-22T21:38:49.513Z",
+      "event": "connection_join",
+      "code": null
+    },
+    {
+      "utc": "2026-10-22T21:39:35.795Z",
+      "event": "connection_leave",
+      "code": 1006
+    },
+    {
+      "utc": "2026-10-22T21:40:12.973Z",
+      "event": "connection_join",
+      "code": null
+    }
+  ]
+}

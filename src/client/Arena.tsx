@@ -5,7 +5,7 @@ import { WORLD, type PlayerView } from '../shared/protocol';
 import { AVATAR_SIZE, AVATAR_FOOT_Y, drawAvatar } from './avatars';
 import { drawArcadeQuestion, drawArcadeRoom } from './arcadeArt';
 
-export type ArenaSource = Pick<Session, 'snapshot' | 'offset'>;
+export type ArenaSource = Pick<Session, 'snapshot' | 'offset'> & Partial<Pick<Session, 'recordFrame'>>;
 interface Visual { container: Phaser.GameObjects.Container; sprite: Phaser.GameObjects.Image; bubble: Phaser.GameObjects.Text; shadow: Phaser.GameObjects.Ellipse; x: number; y: number; signature: string }
 class ArenaScene extends Phaser.Scene {
   private visuals = new Map<string, Visual>();
@@ -89,6 +89,7 @@ class ArenaScene extends Phaser.Scene {
       if (showBubble) v.bubble.setText(player.message);
     }
     for (const [id, v] of this.visuals) if (!present.has(id)) { v.container.destroy(); this.visuals.delete(id); }
+    this.session.recordFrame?.(delta);
   }
 }
 

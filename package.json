@@ -20,7 +20,8 @@
     "test:unit": "vitest run",
     "test:integration": "node scripts/test-integration.mjs",
     "test:all": "npm run test:unit && npm run test:integration",
-    "test:load": "tsx scripts/load-test.ts"
+    "test:load": "tsx scripts/load-test.ts",
+    "diagnose:latency": "tsx scripts/diagnose-latency.ts"
   },
   "dependencies": {
     "@colyseus/core": "^0.18.23",
@@ -33,6 +34,7 @@
     "express-rate-limit": "^8.7.1",
     "helmet": "^8.3.0",
     "phaser": "^3.90.0",
+    "pino": "^10.4.0",
     "qrcode": "^1.5.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",

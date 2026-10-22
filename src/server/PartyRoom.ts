@@ -7,6 +7,8 @@ import { appearanceSchema, inputSchema, commandSchema, makeZones, zoneAt, TICK_R
 import { persistResult } from './results.js';
 import { auth, isHost } from './auth.js';
 import { loadQuestionDeck, QuestionSequence, type QuestionDeck } from './questions/index.js';
+import { logger, RoomDiagnostics, movementTracing } from './diagnostics.js';
+import { renderProbeSchema } from '../shared/telemetry.js';
 
 export const rooms = new Map<string, PartyRoom>();
 const tokenSchema = z.string().regex(/^[a-zA-Z0-9_-]{32,128}$/);
@@ -38,6 +40,11 @@ export class PartyRoom extends Room<{ state: PartyState }> {
   private zones: Zone[] = [];
   private pausedAt = 0;
   private lastOccupied = Date.now();
+  private diagnostics!: RoomDiagnostics;
+  private pendingProbes = new Map<string, { client: PartyClient; playerId: string; seq: number; receivedMono: number; receivedAt: number }>();
+  private probeAt = new Map<string, number>();
+  private renderTraces = new Map<string, { playerId: string; seq: number; at: number }>();
+  private lastTrace = -Infinity;
   readonly history: RoundResult[] = [];
 
   async onCreate(options: unknown) {
@@ -50,13 +57,21 @@ export class PartyRoom extends Room<{ state: PartyState }> {
     this.hostKey = parsed.data.hostKey;
     this.roomId = randomBytes(4).toString('hex').toUpperCase();
     rooms.set(this.roomId, this);
+    this.diagnostics = new RoomDiagnostics(this.roomId);
+    logger.info({ event: 'room_created', roomId: this.roomId });
     this.setMetadata({ title: 'Sidequest Live' });
     this.onMessage('input', (client, value) => {
       const player = this.getPlayer(client);
       const input = inputSchema.safeParse(value);
-      if (!player || !input.success || input.data.seq <= player.lastSeq) return;
+      if (!player || !input.success) { this.diagnostics.inputRejected(false); return; }
+      if (input.data.seq <= player.lastSeq) { this.diagnostics.inputRejected(true); return; }
       player.lastSeq = input.data.seq;
       this.heldInputs.set(player.id, { ...input.data, at: Date.now() });
+      const now = performance.now();
+      if (input.data.probe && now - (this.probeAt.get(client.sessionId) ?? -Infinity) >= 900) {
+        this.probeAt.set(client.sessionId, now);
+        this.pendingProbes.set(client.sessionId, { client: client as PartyClient, playerId: player.id, seq: input.data.seq, receivedMono: now, receivedAt: Date.now() });
+      }
     });
     this.onMessage('jump', client => {
       const player = this.getPlayer(client), now = Date.now();
@@ -72,6 +87,20 @@ export class PartyRoom extends Room<{ state: PartyState }> {
     });
     this.onMessage('ping', (client, sent) => {
       if (typeof sent === 'number' && Number.isFinite(sent)) client.send('pong', { sent, serverTime: Date.now() });
+    });
+    this.onMessage('telemetry', (client, report) => {
+      const role = (client as PartyClient).userData?.role;
+      if (role) this.diagnostics.report(client.sessionId, role, report);
+    });
+    this.onMessage('renderProbe', (client, raw) => {
+      const pending = this.renderTraces.get(client.sessionId);
+      if (!pending || performance.now() - pending.at > 5000) return;
+      const parsed = renderProbeSchema.safeParse(raw);
+      if (!parsed.success || parsed.data.seq !== pending.seq || parsed.data.playerId !== pending.playerId) return;
+      this.renderTraces.delete(client.sessionId);
+      logger.info({ event: 'movement_trace', roomId: this.roomId, screenConnectionId: client.sessionId, ...parsed.data,
+        serverReceiveToRenderAckMs: Math.round(performance.now() - pending.at),
+      });
     });
     this.onMessage('whoami', client => {
       const player = this.getPlayer(client);
@@ -89,6 +118,7 @@ export class PartyRoom extends Room<{ state: PartyState }> {
     });
     this.setSimulationInterval(() => this.tick(), 1000 / TICK_RATE);
     this.clock.setInterval(() => this.cleanup(), 5000);
+    this.clock.setInterval(() => this.diagnostics.flush(this.clients as PartyClient[], [...this.state.players.values()].filter(p => p.online).length, this.state.phase), 10_000);
   }
 
   static async onAuth(_token: string, options: unknown, context: AuthContext): Promise<Joined> {
@@ -106,6 +136,8 @@ export class PartyRoom extends Room<{ state: PartyState }> {
     if (!auth || (auth.role !== 'screen' && !auth.userId)) throw new ServerError(401, 'Session required.');
     if (auth.role === 'host' && !this.authorize(auth.hostKey)) throw new ServerError(403, 'Invalid host key.');
     client.userData = { role: auth.role };
+    this.diagnostics.joined();
+    logger.info({ event: 'connection_join', roomId: this.roomId, connectionId: client.sessionId, role: auth.role });
     if (auth.role !== 'player') return;
     let id = this.identities.get(auth.userId!);
     let player = id ? this.state.players.get(id) : undefined;
@@ -128,8 +160,11 @@ export class PartyRoom extends Room<{ state: PartyState }> {
     client.send('identity', { playerId: player.id });
   }
 
-  onLeave(rawClient: Client) {
+  onLeave(rawClient: Client, code?: number) {
     const client = rawClient as PartyClient;
+    this.diagnostics.left(client.sessionId);
+    this.pendingProbes.delete(client.sessionId); this.probeAt.delete(client.sessionId); this.renderTraces.delete(client.sessionId);
+    logger.info({ event: 'connection_leave', roomId: this.roomId, connectionId: client.sessionId, role: client.userData?.role, code });
     const id = client.userData?.playerId;
     if (!id || this.sessions.get(id) !== client.sessionId) return;
     this.sessions.delete(id); this.heldInputs.delete(id);
@@ -137,7 +172,7 @@ export class PartyRoom extends Room<{ state: PartyState }> {
     const player = this.state.players.get(id);
     if (player) { player.online = false; player.vx = 0; player.vy = 0; }
   }
-  onDispose() { rooms.delete(this.roomId); }
+  onDispose() { rooms.delete(this.roomId); logger.info({ event: 'room_disposed', roomId: this.roomId }); }
 
   getQuestions() { return structuredClone(this.questionDeck); }
 
@@ -197,11 +232,26 @@ export class PartyRoom extends Room<{ state: PartyState }> {
     return this.state.players.get(data.playerId);
   }
   private tick() {
+    const started = this.diagnostics.tickStart();
     const now = Date.now(); this.state.serverTime = now;
     // Take the final snapshot before simulating another frame past the deadline.
     if (!this.state.paused && this.state.phase === 'question' && now >= this.state.endsAt) this.finish();
     if (!this.state.paused && this.state.phase !== 'results') stepPhysics([...this.state.players.values()], this.heldInputs, 1 / TICK_RATE, now);
     else this.state.players.forEach(p => { p.vx = 0; p.vy = 0; });
+    for (const probe of this.pendingProbes.values()) {
+      this.diagnostics.inputWaitMs.add(performance.now() - probe.receivedMono);
+      const applied = !this.state.paused && this.state.phase !== 'results';
+      probe.client.send('inputAck', { seq: probe.seq, applied });
+      if (applied && movementTracing() && started - this.lastTrace >= 1000) {
+        this.lastTrace = started;
+        for (const viewer of this.clients as PartyClient[]) if (viewer.userData?.role !== 'player') {
+          this.renderTraces.set(viewer.sessionId, { playerId: probe.playerId, seq: probe.seq, at: probe.receivedMono });
+          viewer.send('movementProbe', { playerId: probe.playerId, seq: probe.seq, receivedAt: probe.receivedAt });
+        }
+      }
+    }
+    this.pendingProbes.clear();
+    this.diagnostics.tickMs.add(performance.now() - started);
   }
   private finish() {
     if (this.state.phase !== 'question' || !this.question) return;
@@ -220,7 +270,7 @@ export class PartyRoom extends Room<{ state: PartyState }> {
     this.state.resultJson = JSON.stringify(result);
     this.state.phase = 'results'; this.state.endsAt = 0; this.state.paused = false; this.heldInputs.clear();
     void persistResult(result).catch(error => {
-      console.error('Result persistence failed:', (error as Error).message);
+      logger.error({ event: 'result_persistence_failed', roomId: this.roomId, err: error }, 'Result persistence failed');
       this.clients.filter(c => (c as PartyClient).userData?.role === 'host').forEach(c => c.send('notice', 'The result is visible, but saving it to disk failed. Export it from the host screen.'));
     });
   }
