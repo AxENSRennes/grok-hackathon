@@ -12,3 +12,16 @@
 @media(max-width:720px){.cs-page{padding:20px 12px}.cs-cabinet{max-width:480px;padding:23px 20px 12px}.cs-pixel-words canvas{height:14px}.cs-heading{gap:8px}.cs-heading h1{font-size:18px}.cs-player{font-size:12px}.cs-heading-end{width:16px}.cs-carousel{height:290px;margin:21px -12px 0}.cs-side-character{width:80px;top:105px;opacity:.42}.cs-side-character .cs-sprite{width:80px}.cs-previous{left:0}.cs-next{right:0}.cs-chevron{top:142px;width:44px;height:44px}.cs-chevron-left{left:1px}.cs-chevron-right{right:1px}.cs-main-character{width:190px}.cs-hero{width:168px;height:168px;left:11px}.cs-main-platform{left:2px;right:2px}.cs-focus-corners{left:5px;right:5px;top:24px}.cs-floor{left:-8px;right:-8px}.cs-customize{display:grid;gap:21px;margin:17px 0 24px}.cs-customize legend{margin-bottom:10px}.cs-color-options{gap:7px}.cs-color-options button{width:44px;height:44px}.cs-color-options button span{width:29px;height:29px}.cs-accessory-options{gap:12px}.cs-accessory-options button{width:59px;height:49px}.cs-confirm{grid-template-columns:1fr;gap:12px}.cs-confirm input{height:51px}.cs-play{min-height:54px}.cs-play .cs-pixel-words canvas{height:14px}.cs-announcement{margin-top:10px}.cs-wall{display:none}}
 @media(max-width:370px){.cs-cabinet{padding-left:14px;padding-right:14px}.cs-color-options{gap:4px}.cs-carousel{margin-left:-8px;margin-right:-8px}.cs-main-character{width:172px}.cs-hero{width:156px;height:156px;left:8px}.cs-previous{left:-6px}.cs-next{right:-6px}.cs-side-character,.cs-side-character .cs-sprite{width:70px}.cs-customize{gap:18px}}
 @media(prefers-reduced-motion:reduce){.cs-page *{animation:none!important;transition:none!important}}
+
+/* Integer magnification preserves the approved square-cell sprite grid. */
+.cs-hero{width:224px;height:224px;left:3px}
+.cs-side-character,.cs-side-character .cs-sprite{width:96px}
+.cs-customize{display:grid;gap:18px}
+.cs-color-options{flex-wrap:wrap}
+.cs-accessory-options{flex-wrap:wrap;gap:8px}
+.cs-accessory-options button{width:72px;height:72px;padding:2px;flex:0 0 72px}
+.cs-accessory-options .cs-sprite{width:64px;height:64px}
+.cs-room{grid-column:1/-1}
+.cs-error{color:#ffb5d7;font-size:14px;line-height:1.5;margin:14px 0 0}
+@media(max-width:720px){.cs-hero{width:192px;height:192px;left:-1px}.cs-side-character,.cs-side-character .cs-sprite{width:64px}}
+@media(max-width:370px){.cs-hero{left:-10px}}

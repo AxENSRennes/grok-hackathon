@@ -5,7 +5,7 @@ export class PlayerState extends schema({
   x: t.float32().default(0), y: t.float32().default(0),
   vx: t.float32().default(0), vy: t.float32().default(0),
   color: t.uint8().default(0), hair: t.uint8().default(0),
-  accessory: t.string().default('none'), facing: t.string().default('down'),
+  accessory: t.string().default('none'), accessory2: t.string().default('none'), facing: t.string().default('down'),
   jumpAt: t.float64().default(0), message: t.string().default(''),
   messageUntil: t.float64().default(0), online: t.boolean().default(true),
   lastSeq: t.number().default(-1),

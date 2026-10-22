@@ -112,7 +112,7 @@ export class PartyRoom extends Room<{ state: PartyState }> {
     if (!player) {
       id = randomUUID();
       player = new PlayerState();
-      Object.assign(player, { id, name: auth.name, color: auth.color, hair: auth.hair, accessory: auth.accessory });
+      Object.assign(player, { id, name: auth.name, color: auth.color, hair: auth.hair, accessory: auth.accessory, accessory2: auth.accessory2 || 'none' });
       const slot = this.state.players.size;
       player.x = WORLD.left + 60 + (slot % 12) * 90;
       player.y = WORLD.top + 50 + (Math.floor(slot / 12) % 6) * 70;

@@ -1,9 +1,9 @@
 import { createRoot } from 'react-dom/client';
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from 'react';
-import { COLORS, ACCESSORIES, type Appearance } from '../shared/protocol';
+import { type Appearance } from '../shared/protocol';
 import { Session, createSession, joinSession, randomToken, guestToken } from './session';
 import { useSession } from './useSession';
-import { AVATAR_SIZE, drawAvatar } from './avatars';
+import { CharacterSelector, type CharacterChoice } from './CharacterSelector';
 import './styles.css';
 import './arcade.css';
 import { authClient } from './auth';
@@ -15,12 +15,6 @@ const Arena = lazy(() => import('./Arena').then(module => ({ default: module.Are
 const ArcadePreview = lazy(() => import('./ArcadePreview').then(module => ({ default: module.ArcadePreview })));
 const roomFromUrl = () => (new URLSearchParams(location.search).get('room') || '').toUpperCase();
 const initialAppearance: Appearance = { color: 0, hair: 0, accessory: 'none' };
-const accessoryNames = { none: 'No accessory', cap: 'Cap', leaf: 'Leaf', glasses: 'Glasses' };
-function Avatar({ appearance, size = 3 }: { appearance: Appearance; size?: number }) {
-  const canvas = useRef<HTMLCanvasElement>(null);
-  useEffect(() => { if (canvas.current) drawAvatar(canvas.current.getContext('2d')!, appearance); }, [appearance.color, appearance.hair, appearance.accessory]);
-  return <canvas ref={canvas} width={AVATAR_SIZE} height={AVATAR_SIZE} style={{ width: AVATAR_SIZE * size, height: AVATAR_SIZE * size }} aria-label="Your character" />;
-}
 function Notice({ text }: { text: string }) { return text ? <div role="alert" className="notice">{text}</div> : null; }
 function Connection({ session }: { session: Session }) {
   return session.status === 'connected' ? null : <span className="connection" role="status">{session.status === 'reconnecting' ? 'Reconnecting…' : 'Disconnected'}</span>;
@@ -37,14 +31,12 @@ function usePublicBase() {
 }
 function JoinPlayer() {
   const [roomId, setRoomId] = useState(roomFromUrl());
-  const [name, setName] = useState(localStorage.getItem('sidequest:name') || '');
-  const [appearance, setAppearance] = useState<Appearance>(initialAppearance);
   const [session, setSession] = useState<Session | null>(null);
   const [error, setError] = useState(''), [busy, setBusy] = useState(false);
   useEffect(() => () => session?.close(), [session]);
   if (session) return <Controller session={session} />;
-  const join = async (event: FormEvent) => {
-    event.preventDefault(); setError(''); setBusy(true);
+  const join = async ({ name, appearance }: CharacterChoice) => {
+    setError(''); setBusy(true);
     try {
       const room = roomId.trim().toUpperCase();
       const joined = await joinSession(room, { role: 'player', token: guestToken(room), name: name.trim(), ...appearance });
@@ -53,15 +45,8 @@ function JoinPlayer() {
     } catch (e) { setError((e as Error).message || 'Unable to connect.'); }
     finally { setBusy(false); }
   };
-  return <main className="join"><form className="join-card" onSubmit={join}>
-    <div className="avatar-preview"><Avatar appearance={appearance} size={3} /></div>
-    {!roomFromUrl() && <><label className="sr-only" htmlFor="join-room">Room code</label><input id="join-room" value={roomId} onChange={e => setRoomId(e.target.value.toUpperCase())} placeholder="Room code" maxLength={8} required /></>}
-    <label className="sr-only" htmlFor="name">Nickname</label><input id="name" placeholder="Your nickname" value={name} onChange={e => setName(e.target.value)} maxLength={18} required autoComplete="nickname" />
-    <div className="swatches">{COLORS.map((color, i) => <button type="button" key={color} className={`swatch ${appearance.color === i ? 'selected' : ''}`} style={{ backgroundColor: color }} onClick={() => setAppearance({ ...appearance, color: i })} aria-label={`Color ${i + 1}`} aria-pressed={appearance.color === i} />)}</div>
-    <label className="sr-only" htmlFor="hair">Character</label><select id="hair" value={appearance.hair} onChange={e => setAppearance({ ...appearance, hair: Number(e.target.value) })}>{['Dark brown', 'Light brown', 'Dark curls', 'Blond'].map((label, i) => <option value={i} key={label}>{label}</option>)}</select>
-    <label className="sr-only" htmlFor="accessory">Accessory</label><select id="accessory" value={appearance.accessory} onChange={e => setAppearance({ ...appearance, accessory: e.target.value as Appearance['accessory'] })}>{ACCESSORIES.map(item => <option value={item} key={item}>{accessoryNames[item]}</option>)}</select>
-    <Notice text={error} /><button className="primary full" disabled={busy}>{busy ? '…' : 'Play'}</button>
-  </form></main>;
+  return <CharacterSelector onConfirm={join} initialName={localStorage.getItem('sidequest:name') || ''} busy={busy} error={error}
+    roomCode={roomId} onRoomCodeChange={roomFromUrl() ? undefined : setRoomId} />;
 }
 function Controller({ session: initial }: { session: Session }) {
   const session = useSession(initial)!;

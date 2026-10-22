@@ -1,6 +1,6 @@
 import React, {useLayoutEffect, useRef} from 'react';
 import {AbsoluteFill, useCurrentFrame} from 'remotion';
-import {drawAvatar} from '../../src/client/avatars';
+import {AVATAR_SIZE, AVATAR_FOOT_Y, drawAvatar} from '../../src/client/avatars';
 import {drawArcadeQuestion, drawArcadeRoom} from '../../src/client/arcadeArt';
 import {makeZones, questionSchema, zoneAt, type Appearance} from '../../src/shared/protocol';
 import {stepPhysics, type Body} from '../../src/server/physics';
@@ -66,7 +66,7 @@ const spriteCache = new Map<string, HTMLCanvasElement>();
 function sprite(actor: Actor, step: number) {
   const key = `${actor.index}:${actor.facing}:${step}`;
   if (!spriteCache.has(key)) {
-    const canvas = document.createElement('canvas'); canvas.width = 48; canvas.height = 48;
+    const canvas = document.createElement('canvas'); canvas.width = AVATAR_SIZE; canvas.height = AVATAR_SIZE;
     drawAvatar(canvas.getContext('2d')!, appearances[actor.index], {facing: actor.facing, step});
     spriteCache.set(key, canvas);
   }
@@ -115,14 +115,16 @@ export function GameplayPreview() {
       const jump = jumpAge >= 0 && jumpAge < 19 ? Math.sin(jumpAge / 19 * Math.PI) * 38 : 0;
       const moving = Math.hypot(actor.vx, actor.vy) > 15;
       const step = moving ? [0, 1, 0, 2][Math.floor(frame / 4) % 4] : 0;
-      const scale = 1.7 * pop, size = 48 * scale;
+      const scale = 3, size = AVATAR_SIZE * scale;
       ctx.fillStyle = '#080d2477'; ctx.beginPath(); ctx.ellipse(actor.x, actor.y + 1, 19 * pop, 5, 0, 0, 2 * Math.PI); ctx.fill();
       if (bornAge < 16) {
         ctx.strokeStyle = appearances[actor.index].color % 2 ? '#ff369a' : '#16bfff';
         ctx.globalAlpha = 1 - bornAge / 16; ctx.lineWidth = 3;
         ctx.strokeRect(actor.x - 15 - bornAge, actor.y - 6 - bornAge / 3, 30 + bornAge * 2, 12 + bornAge * 2 / 3); ctx.globalAlpha = 1;
       }
-      ctx.drawImage(sprite(actor, step), Math.round(actor.x - size / 2), Math.round(actor.y - size - jump), size, size);
+      ctx.globalAlpha = pop;
+      ctx.drawImage(sprite(actor, step), Math.round(actor.x - size / 2), Math.round(actor.y - AVATAR_FOOT_Y * scale - jump), size, size);
+      ctx.globalAlpha = 1;
     }
     if (r === 0 && age > 100 && age < 170) {
       const a = actors[7];

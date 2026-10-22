@@ -4,8 +4,11 @@ export const WORLD = { width: 1280, height: 760, left: 60, right: 1220, top: 220
 export const TICK_RATE = 60;
 export const PATCH_MS = 33;
 export const PLAYER_RADIUS = 14;
-export const COLORS = ['#16bfff', '#ff369a', '#ffe15a', '#a776f6', '#ff9149', '#25d3ac', '#a9dcf5', '#f6efff'] as const;
-export const ACCESSORIES = ['none', 'cap', 'leaf', 'glasses'] as const;
+export const COLORS = ['#16bfff', '#ff359f', '#ffe256', '#ac7afa', '#ff8d43', '#25d3ac', '#a9dcf5', '#f6efff'] as const;
+export const ACCESSORIES = ['none', 'cap', 'leaf', 'headphones', 'glasses', 'bow', 'scarf'] as const;
+export const CHARACTER_COUNT = 5;
+export const CHARACTER_COLORS = [0, 2, 4, 1, 3] as const;
+export const ACCESSORY_NAMES = { none: 'No accessory', cap: 'Cap', leaf: 'Sprout', headphones: 'Headphones', glasses: 'Glasses', bow: 'Bow', scarf: 'Scarf' };
 export type Accessory = typeof ACCESSORIES[number];
 export type Role = 'host' | 'screen' | 'player';
 export const inputSchema = z.object({
@@ -14,8 +17,9 @@ export const inputSchema = z.object({
 });
 export const appearanceSchema = z.object({
   color: z.number().int().min(0).max(COLORS.length - 1),
-  hair: z.number().int().min(0).max(3),
+  hair: z.number().int().min(0).max(CHARACTER_COUNT - 1),
   accessory: z.enum(ACCESSORIES),
+  accessory2: z.enum(ACCESSORIES).optional(),
 });
 export const questionSchema = z.object({
   text: z.string().trim().min(3).max(180),

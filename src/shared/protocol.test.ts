@@ -11,9 +11,14 @@ describe('untrusted controller input', () => {
   ])('rejects malformed movement %#', input => expect(inputSchema.safeParse(input).success).toBe(false));
   it.each([
     { color: 8, hair: 0, accessory: 'none' },
-    { color: 0, hair: 4, accessory: 'none' },
+    { color: 0, hair: 5, accessory: 'none' },
     { color: 0, hair: 0, accessory: 'admin' },
+    { color: 0, hair: 0, accessory: 'none', accessory2: 'admin' },
   ])('rejects invalid avatar choices %#', input => expect(appearanceSchema.safeParse(input).success).toBe(false));
+  it('preserves the fifth character and both accessories when joining', () => {
+    const appearance = { color: 3, hair: 4, accessory: 'headphones', accessory2: 'scarf' };
+    expect(appearanceSchema.parse(appearance)).toEqual(appearance);
+  });
 });
 describe('question and command validation', () => {
   it.each([

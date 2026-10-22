@@ -1,6 +1,6 @@
 import React, {useLayoutEffect, useRef} from 'react';
 import {AbsoluteFill} from 'remotion';
-import {drawAvatar} from '../../src/client/avatars';
+import {AVATAR_SIZE, drawAvatar} from '../../src/client/avatars';
 import type {Appearance} from '../../src/shared/protocol';
 
 // Exact game sprites enlarged with nearest-neighbour sampling for art review.
@@ -18,16 +18,16 @@ export function CharacterSheet() {
     ctx.fillStyle = '#f1f5ff'; ctx.font = 'bold 32px monospace';
     ctx.fillText('CURRENT GAME CHARACTERS', 40, 55);
     ctx.fillStyle = '#aebbd5'; ctx.font = '18px monospace';
-    ctx.fillText('Actual code renderer / enlarged 3x / no redesign', 40, 86);
+    ctx.fillText('Current square-grid renderer / enlarged 6x', 40, 86);
     ctx.textAlign = 'center';
     for (let col = 0; col < examples.length; col++) {
       const x = 205 + col * 265;
       ctx.font = 'bold 18px monospace'; ctx.fillStyle = '#f1f5ff';
       ctx.fillText(examples[col].name, x + 72, 131);
       ['down', 'right', 'up'].forEach((facing, row) => {
-        const sprite = document.createElement('canvas'); sprite.width = 48; sprite.height = 48;
+        const sprite = document.createElement('canvas'); sprite.width = AVATAR_SIZE; sprite.height = AVATAR_SIZE;
         drawAvatar(sprite.getContext('2d')!, examples[col].appearance, {facing, step: 0});
-        ctx.imageSmoothingEnabled = false; ctx.drawImage(sprite, x, 156 + row * 214, 144, 144);
+        ctx.imageSmoothingEnabled = false; ctx.drawImage(sprite, x - 24, 132 + row * 214, AVATAR_SIZE * 6, AVATAR_SIZE * 6);
       });
     }
     ctx.textAlign = 'left'; ctx.font = 'bold 22px monospace'; ctx.fillStyle = '#32d6f5';

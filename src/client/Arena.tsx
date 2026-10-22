@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import Phaser from 'phaser';
 import type { Session } from './session';
 import { WORLD, type PlayerView } from '../shared/protocol';
-import { AVATAR_SIZE, drawAvatar } from './avatars';
+import { AVATAR_SIZE, AVATAR_FOOT_Y, drawAvatar } from './avatars';
 import { drawArcadeQuestion, drawArcadeRoom } from './arcadeArt';
 
 export type ArenaSource = Pick<Session, 'snapshot' | 'offset'>;
@@ -26,7 +26,7 @@ class ArenaScene extends Phaser.Scene {
     this.time.addEvent({ delay: 1000, loop: true, callback: () => this.reportFps(Math.round(this.game.loop.actualFps)) });
   }
   private texture(player: PlayerView, step = 0) {
-    const key = `guest-${player.color}-${player.hair}-${player.accessory}-${player.facing}-${step}`;
+    const key = `guest-${player.color}-${player.hair}-${player.accessory}-${player.accessory2 || 'none'}-${player.facing}-${step}`;
     if (!this.textures.exists(key)) {
       const texture = this.textures.createCanvas(key, AVATAR_SIZE, AVATAR_SIZE)!;
       drawAvatar(texture.getContext(), player, { facing: player.facing, step });
@@ -36,8 +36,8 @@ class ArenaScene extends Phaser.Scene {
   }
   private addPlayer(player: PlayerView): Visual {
     const shadow = this.add.ellipse(0, 1, this.preview ? 67 : 39, 12, 0x080d24, 0.5);
-    const sprite = this.add.image(0, 0, this.texture(player)).setOrigin(0.5, 1).setScale(this.preview ? 3 : 2);
-    const bubble = this.add.text(0, -108, '', { fontFamily: 'monospace', fontSize: '16px', color: '#111831', backgroundColor: '#f1f5ff', padding: { x: 10, y: 8 }, wordWrap: { width: 210 }, align: 'center' }).setOrigin(0.5, 1).setVisible(false);
+    const sprite = this.add.image(0, 0, this.texture(player)).setOrigin(0.5, AVATAR_FOOT_Y / AVATAR_SIZE).setScale(this.preview ? 6 : 4);
+    const bubble = this.add.text(0, -AVATAR_FOOT_Y * (this.preview ? 6 : 4) - 12, '', { fontFamily: 'monospace', fontSize: '16px', color: '#111831', backgroundColor: '#f1f5ff', padding: { x: 10, y: 8 }, wordWrap: { width: 210 }, align: 'center' }).setOrigin(0.5, 1).setVisible(false);
     const container = this.add.container(player.x, player.y, [shadow, sprite, bubble]);
     const visual = { container, shadow, sprite, bubble, x: player.x, y: player.y, signature: '' };
     this.visuals.set(player.id, visual); return visual;
@@ -79,12 +79,12 @@ class ArenaScene extends Phaser.Scene {
       const jump = jumpT > 0 && jumpT < 1 ? Math.sin(jumpT * Math.PI) * 38 : 0;
       const moving = Math.hypot(player.vx, player.vy) > 15;
       const step = moving ? [0, 1, 0, 2][Math.floor(now / 135) % 4] : 0;
-      const walk = moving ? Math.sin(now / 85) * 1.5 : 0;
-      v.sprite.setY(-jump - Math.abs(walk));
+      v.sprite.setY(-Math.round(jump));
       v.shadow.setScale(1 - jump / 100);
-      const signature = `${player.color}:${player.hair}:${player.accessory}:${player.facing}:${step}`;
+      const signature = `${player.color}:${player.hair}:${player.accessory}:${player.accessory2 || 'none'}:${player.facing}:${step}`;
       if (v.signature !== signature) { v.sprite.setTexture(this.texture(player, step)); v.signature = signature; }
       const showBubble = state.chatEnabled && player.messageUntil > now && !!player.message;
+      v.bubble.setY(-AVATAR_FOOT_Y * (this.preview ? 6 : 4) - 12 - Math.round(jump));
       v.bubble.setVisible(showBubble);
       if (showBubble) v.bubble.setText(player.message);
     }
