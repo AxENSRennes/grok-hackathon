@@ -1,6 +1,7 @@
 import React from 'react';
 import {AbsoluteFill, Composition, Img, interpolate, registerRoot, staticFile, useCurrentFrame} from 'remotion';
 import {GameplayPreview} from './gameplay-preview';
+import {CharacterSheet} from './character-sheet';
 
 const C={bg:'#101329',panel:'#1b2142',ink:'#f5f4ee',muted:'#b4bed8',cyan:'#32d6f5',pink:'#ff55ae',yellow:'#ffe15b',navy:'#090d24'};
 const colors=[C.cyan,C.pink,C.yellow,'#ff9b5c','#a58bff','#77d8b6'];
@@ -88,4 +89,4 @@ function Film(){
   <div style={{position:'absolute',bottom:0,left:0,height:4,width:`${100*frame/2250}%`,background:C.cyan}}/>
  </AbsoluteFill>;
 }
-registerRoot(()=> <><Composition id="SidequestPitch" component={Film} width={1280} height={720} fps={30} durationInFrames={2250}/><Composition id="GameplayPreview" component={GameplayPreview} width={1280} height={800} fps={30} durationInFrames={900}/></>);
+registerRoot(()=> <><Composition id="SidequestPitch" component={Film} width={1280} height={720} fps={30} durationInFrames={2250}/><Composition id="GameplayPreview" component={GameplayPreview} width={1280} height={800} fps={30} durationInFrames={900}/><Composition id="CharacterSheet" component={CharacterSheet} width={1280} height={800} fps={30} durationInFrames={1}/></>);
