@@ -1,70 +1,70 @@
 # Sidequest Live
 
-Prototype de jeu collectif pour animer un hackathon : les participants rejoignent une salle par QR code, choisissent un pseudo et un personnage, puis utilisent leur téléphone comme télécommande. Les positions finales déterminent les réponses aux questions.
+A multiplayer game prototype for hackathon audiences: participants join a room by QR code, choose a nickname and character, then use their phone as a controller. Their final positions determine their answers to questions.
 
-Projet open source du Grok Bot Community Engineering London Hackathon, 22 octobre 2026. [Code public](https://github.com/AxENSRennes/grok-hackathon) · [Instance de démonstration](https://play.colvenalabs.com).
+An open-source project for the Grok Bot Community Engineering London Hackathon, October 22, 2026. [Public code](https://github.com/AxENSRennes/grok-hackathon) · [Demo instance](https://play.colvenalabs.com).
 
-L'instance demande un compte organisateur préconfiguré pour créer une salle ; les participants rejoignent ensuite par QR sans inscription. Pour lancer votre propre événement, suivre les instructions ci-dessous. Le projet est encore un prototype ; les intégrations Grok/Cognee et les sprites définitifs restent à connecter.
+The demo requires a preconfigured organizer account to create a room; participants then join by QR without signing up. To run your own event, follow the instructions below. This is still a prototype; Grok/Cognee integrations and final sprites remain to be connected.
 
-## Démarrer
+## Getting started
 
-Node.js 22.13 ou supérieur (24 recommandé), npm.
+Node.js 22.13 or later (24 recommended), npm.
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Configurer `HOST_EMAILS` dans `.env` et provisionner un compte organisateur avec `npm run auth:create-host` (mot de passe fourni via stdin, au moins 12 caractères). En production, `BETTER_AUTH_SECRET`, `HOST_EMAILS` et une `PUBLIC_URL` HTTPS sont obligatoires. Les inscriptions organisateur sont fermées au public.
+Configure `HOST_EMAILS` in `.env` and provision an organizer account with `npm run auth:create-host` (supply a password of at least 12 characters through stdin). Production requires `BETTER_AUTH_SECRET`, `HOST_EMAILS`, and an HTTPS `PUBLIC_URL`. Organizer registration is closed to the public.
 
-Ouvrir **http://localhost:5173/** et se connecter comme organisateur : la salle et son QR sont créés automatiquement. Le grand écran ne montre que le jeu et le QR. Les téléphones peuvent rejoindre la machine sur le même réseau avec le QR (adresse locale détectée automatiquement). Si le Wi-Fi isole ses clients, utiliser un hébergement HTTPS public.
+Open **http://localhost:5173/** and sign in as an organizer: the room and its QR code are created automatically. The shared screen shows only the game and QR code. Phones on the same network can join through the QR code (the local address is detected automatically). If the Wi-Fi isolates clients, use public HTTPS hosting.
 
-- `/?room=CODE` : jeu et QR ; sans code, une nouvelle salle est créée automatiquement.
-- `/host` et `/screen?room=CODE` : anciens liens compatibles, même écran épuré.
-- `/play?room=CODE` : pseudo, personnage/accessoire et télécommande tactile.
-- `/preview` : proposition visuelle arcade avec grande question et deux personnages locaux dessinés dans le code ; flèches pour déplacer le personnage cyan, espace pour sauter. Cet aperçu ne crée pas de salle ; son QR ouvre la page joueur.
-- Clavier de test : flèches / WASD / ZQSD, espace pour sauter (hors champs de texte).
+- `/?room=CODE`: game and QR code; without a code, a new room is created automatically.
+- `/host` and `/screen?room=CODE`: compatible legacy links to the same minimal screen.
+- `/play?room=CODE`: nickname, character/accessory selection, and touch controller.
+- `/preview`: arcade visual proposal with a large question and two local code-drawn characters; arrow keys move the cyan character, space jumps. This preview does not create a room; its QR code opens the player page.
+- Test keyboard controls: arrows / WASD / ZQSD, space to jump (outside text fields).
 
-## Ce qui fonctionne
+## Working features
 
-- Aucun plafond de joueurs imposé par le produit. Les tests utilisent 50 ou 60 connexions comme points de mesure, pas comme limite ; la capacité réelle dépend de la machine et du réseau.
-- Simulation serveur à 60 pas/seconde ; synchronisation autour de 30 mises à jour/seconde ; affichage Phaser lissé indépendamment.
-- Mouvements normalisés, collisions à poids égal, impulsions limitées, bornes de carte.
-- Saut visuel : la position au sol et les collisions restent inchangées.
-- Les commandes cessent après 450 ms sans heartbeat ; elles sont relâchées quand le téléphone perd le focus.
-- Better Auth : session anonyme automatique pour jouer sans compte ; email/mot de passe pour les organisateurs. Reconnexion liée à la session signée : le personnage est conservé 90 secondes après déconnexion. La salle vide expire après 15 minutes.
-- QCM à 2–4 zones ou échelle à 5 bandes, apparition des zones, délai 10–180 secondes, arrêt et pause pilotables via l’API. Aucun formulaire de manches dans l’interface.
-- Les poussées restent actives pendant le vote. Les résultats figent les positions. Les joueurs hors zone sont comptés séparément ; les déconnectés ne votent pas.
-- Bulles de 80 caractères affichées quatre secondes ; délai minimal de 2,5 secondes entre messages ; coupure globale possible via l’API.
-- Résultats agrégés sauvegardés en JSONL dans `data/rounds.jsonl`, export JSON via l’API protégée. Les mouvements et le chat ne sont pas persistés.
+- No product player limit. Tests use 50 or 60 connections as sample sizes; actual capacity depends on the machine and network.
+- Server simulation at 60 steps/second; synchronization at around 30 updates/second; independently smoothed Phaser rendering.
+- Normalized movement, equal-weight collisions, bounded impulses, and map boundaries.
+- Visual jumps: ground position and collisions remain unchanged.
+- Input stops after 450 ms without a heartbeat and is released when the phone loses focus.
+- Better Auth: automatic anonymous sessions for players, email/password accounts for organizers. Reconnection uses the signed session: characters are retained for 90 seconds after disconnecting. Empty rooms expire after 15 minutes.
+- Multiple-choice questions with 2–4 zones or a five-band scale, zone reveals, 10–180-second timers, and API controls to finish or pause. No round-management form in the interface.
+- Pushing remains active during voting. Results freeze positions. Players outside zones are counted separately; disconnected players do not vote.
+- Speech bubbles of up to 80 characters last four seconds; messages have a minimum 2.5-second interval and can be disabled globally through the API.
+- Aggregate results are saved as JSONL in `data/rounds.jsonl`, with JSON export through the protected API. Movement and chat are not persisted.
 
-Les avatars arcade sont dessinés dans le code sur une grille de 48 × 48 pixels : coiffures distinctes, palettes de vêtements, accessoires et poses de marche dans quatre directions. Le décor, le présentateur et la grande question en lettres pixel sont également dessinés dans le code. Les dix références graphiques sont dans `design/character-palettes-2026-10-22/index.html` ; les planches générées restent des références, pas des textures chargées par le jeu.
+Arcade avatars are drawn in code on a 48 × 48 pixel grid, with distinct hairstyles, clothing palettes, accessories, and walking poses in four directions. The environment, presenter, and large pixel-letter question are also drawn in code. The ten art references are in `design/character-palettes-2026-10-22/index.html`; generated sheets remain references rather than textures loaded by the game.
 
-## Vérifier
+## Verification
 
 ```sh
 npm run check
 ```
 
-Cette commande vérifie uniquement les types. `npm test` lance seulement deux tests rapides de mouvement. Rien ne lance automatiquement la suite complète au démarrage du jeu ou à chaque modification. Quinze secondes est un ordre de grandeur, pas un délai d’arrêt imposé.
+This command checks types only. `npm test` runs just two quick movement tests. The full suite never runs automatically at game startup or after each edit. Fifteen seconds is an approximate speed target, not a hard timeout.
 
-| Commande explicite | Périmètre |
+| Explicit command | Scope |
 | --- | --- |
-| `npm test` | Deux tests de mouvement : vitesse diagonale et arrêt après perte du contrôleur |
-| `npm run test:unit` | Tous les cas unitaires : physique, zones de vote, entrées malformées et autorisations organisateur |
-| `npm run test:integration` | Serveur et SQLite temporaires, vrais comptes Better Auth et connexions multijoueurs ; nettoyage automatique |
-| `npm run test:all` | Suite unitaire complète et intégration |
-| `npm run test:load` | 50 joueurs simulés sur un serveur existant ; accès organisateur à fournir |
+| `npm test` | Two movement tests: diagonal speed and stopping after controller loss |
+| `npm run test:unit` | All unit cases: physics, voting zones, malformed input, and organizer permissions |
+| `npm run test:integration` | Temporary server and SQLite database, real Better Auth accounts and multiplayer connections; automatic cleanup |
+| `npm run test:all` | Full unit suite and integration |
+| `npm run test:load` | 50 simulated players on an existing server; organizer credentials required |
 
-Les suites étendues restent disponibles pour les changements importants et les livraisons. Pas d’objectif de couverture artificiel ; pas de relance systématique après les petites retouches.
+Extended suites remain available for consequential changes and releases. There is no artificial coverage target or systematic rerun after small edits.
 
-Les parcours E2E se vérifient manuellement avec browser use pour les changements concernés : ouvrir le jeu, rejoindre par QR/lien, choisir son avatar, déplacer/sauter/envoyer un message, vérifier le grand écran et la reconnexion. Pas de suite E2E automatisée par défaut.
+Verify affected E2E journeys manually using browser tools: open the game, join by QR/link, choose an avatar, move/jump/send a message, check the shared screen, and reconnect. No automated E2E suite by default.
 
-Le build est réservé aux livraisons et changements de compilation. `npm run test:load` reste disponible explicitement pour les changements réseau/physique ; il nécessite un serveur lancé et est hors du contrôle rapide. Il connecte 50 joueurs par défaut, un écran et un organisateur (un échantillon, aucune limite produit), et vérifie déplacements, bornes, reprise d'identité, autorisations et résultats. Un test local ne mesure pas la latence réelle du Wi-Fi de l'événement.
+Builds are reserved for releases and bundling changes. `npm run test:load` is an explicit extra check for networking/physics changes; it requires a running server and is separate from routine checks. By default, it connects 50 players, one screen, and one organizer (a sample, not a product limit), then checks movement, boundaries, identity recovery, permissions, and results. A local test does not measure actual latency on the event Wi-Fi.
 
-## Règles de conception
+## Design guidelines
 
-[AGENTS.md](AGENTS.md) contient les consignes du projet et de vérification ; [DESIGN.md](DESIGN.md) conserve les choix visuels. Le cœur d'[anti-slop](docs/anti-slop/README.md) est intégré localement et appliqué pendant le travail d'interface. Aucun plugin global ni dépendance d'exécution n'est ajouté.
+[AGENTS.md](AGENTS.md) contains project and verification instructions; [DESIGN.md](DESIGN.md) records visual choices. The [anti-slop](docs/anti-slop/README.md) core is vendored locally and applied during interface work. No global plugin or runtime dependency is added.
 
 ## Production
 
@@ -73,37 +73,37 @@ npm run build
 NODE_ENV=production npm start
 ```
 
-Un seul service Node sert le client compilé et les WebSockets sur `PORT` (2567 par défaut). Le serveur doit rester actif, derrière un proxy HTTPS acceptant les WebSockets. Une instance suffit pour ce prototype ; ne pas répartir une même salle sur plusieurs processus sans présence/driver partagés.
+A single Node service serves the built client and WebSockets on `PORT` (2567 by default). Keep the server running behind an HTTPS proxy that supports WebSockets. One instance is enough for this prototype; do not distribute the same room across processes without shared presence/driver infrastructure.
 
-Dockerfile fourni. Monter un volume sur `/app/data` pour conserver les résultats. Les salles actives restent en mémoire et ne survivent pas à un redémarrage du serveur.
+A Dockerfile is provided. Mount a volume at `/app/data` to retain results. Active rooms stay in memory and do not survive a server restart.
 
-Voir `.env.example` pour la configuration. `ALLOWED_ORIGINS` autorise les origines HTTP d’authentification et WebSocket ; `DATA_DIR` conserve `auth.sqlite` et les résultats. La clé organisateur est stockée dans le sessionStorage de l'onglet créateur ; elle n'est jamais incluse dans le QR. Les commandes requièrent aussi une session Better Auth organisateur valide. Aucun formulaire de manches n'est exposé dans l'interface.
+See `.env.example` for configuration. `ALLOWED_ORIGINS` allows HTTP authentication and WebSocket origins; `DATA_DIR` stores `auth.sqlite` and results. The organizer key is stored in the creator tab's sessionStorage and is never included in the QR code. Commands also require a valid Better Auth organizer session. No round-management form is exposed in the interface.
 
-L'auto-hébergement et la procédure de mise à jour sont documentés dans [deploy/PUBLIC.md](deploy/PUBLIC.md). Pour le test réseau authentifié, fournir `TEST_HOST_EMAIL` et `TEST_HOST_PASSWORD` via un fichier d’environnement privé. Il vérifie aussi les inscriptions fermées, le refus des invités à la régie, et la révocation des commandes après déconnexion organisateur.
+Self-hosting and updates are documented in [deploy/PUBLIC.md](deploy/PUBLIC.md). For authenticated network testing, provide `TEST_HOST_EMAIL` and `TEST_HOST_PASSWORD` through a private environment file. The test also checks that registration is closed, guests cannot access organizer controls, and commands are rejected after organizer sign-out.
 
-## Préparer Grok / Cognee / Supabase
+## Preparing Grok / Cognee / Supabase
 
-Le jeu n'appelle actuellement aucun service IA ou base de données externe. Better Auth utilise SQLite sur le serveur. Les crédits des services externes ne sont pas consommés.
+The game currently calls no external AI or database service. Better Auth uses SQLite on the server. No external service credits are consumed.
 
-Le point de commande pour un futur adaptateur Grok est déjà utilisable, avec validation côté serveur :
+The command endpoint for a future Grok adapter already supports server-side validation:
 
 ```http
 POST /api/rooms/:roomId/commands
 Content-Type: application/json
-x-host-key: <clé privée de l'organisateur>
-Cookie: <session Better Auth organisateur>
+x-host-key: <private organizer key>
+Cookie: <Better Auth organizer session>
 
-{"action":"start","question":{"text":"Quel atelier ?","mode":"choice","labels":["Agents","Robotique"],"duration":30}}
+{"action":"start","question":{"text":"Which workshop?","mode":"choice","labels":["Agents","Robotics"],"duration":30}}
 ```
 
-Actions : `next`, `start`, `finish`, `lobby`, `pause` (`paused`) et `chat` (`enabled`). Ne pas exposer la clé organisateur ni le cookie aux joueurs ou dans une URL. Les schémas et types sont dans `src/shared/protocol.ts`. L'export protégé est `GET /api/rooms/:roomId/results` avec la même session et le même header. Un futur adaptateur Grok devra passer par une frontière serveur autorisée.
+Actions: `next`, `start`, `finish`, `lobby`, `pause` (`paused`), and `chat` (`enabled`). Never expose the organizer key or cookie to players or in a URL. Schemas and types are in `src/shared/protocol.ts`. The protected export is `GET /api/rooms/:roomId/results`, using the same session and header. A future Grok adapter must use an authorized server boundary.
 
-Les six questions retenues sont dans `src/server/questions/hackathon.en.json`, dans l'ordre de jeu, avec une durée provisoire de 30 secondes chacune. Envoyer `{"action":"next"}` à la route de commandes lance la suivante après les résultats (ou depuis le lobby). Une manche en cours doit d'abord se terminer. La dernière question est explicitement marquée `closing` et la séquence s'arrête ensuite ; `lobby` ne remet pas le compteur à zéro. Une nouvelle salle recommence la sélection. Les commandes `start` avec une question libre restent disponibles.
+The six selected questions are in `src/server/questions/hackathon.en.json`, in gameplay order, with a provisional duration of 30 seconds each. Sending `{"action":"next"}` to the command endpoint starts the next question after results (or from the lobby). An active round must finish first. The final question is explicitly marked `closing`, and the sequence then stops; `lobby` does not reset the counter. A new room restarts the selection. `start` commands with custom questions remain available.
 
-`GET /api/rooms/:roomId/questions` renvoie la sélection de la salle avec les mêmes protections que les commandes. `QuestionSource.load()` dans `src/server/questions/index.ts` est la frontière à remplacer par un adaptateur Supabase ou Grok : son résultat est validé, puis figé à la création de chaque salle. Aucun accès externe n'intervient dans la boucle physique. Aucun panneau de configuration n'est ajouté.
+`GET /api/rooms/:roomId/questions` returns the room's selection with the same protections as commands. `QuestionSource.load()` in `src/server/questions/index.ts` is the boundary to replace with a Supabase or Grok adapter: its output is validated, then fixed when each room is created. No external access occurs in the physics loop. No configuration panel is added.
 
-Cognee pourra enrichir les questions avec le contexte et les résultats passés ; Supabase pourra remplacer le stockage local des manches. Ces intégrations restent à connecter et ne participent pas à la simulation physique.
+Cognee could enrich questions with context and previous results; Supabase could replace local round storage. These integrations remain to be connected and do not participate in the physics simulation.
 
-## Licence
+## License
 
-Code sous [MIT](LICENSE), conformément à la [consigne open source du hackathon](https://gb-community-eng-hackathon-10-2026.teamdeel.workers.dev/hackathon#tracks) : dépôt public avec licence MIT, Apache-2.0 ou AGPL-3.0. Les planches générées servent à choisir la direction graphique ; aucune ressource de franchise n'est incluse dans le jeu. Les règles anti-slop conservent leur propre notice MIT dans `docs/anti-slop/LICENSE`.
+Code is licensed under [MIT](LICENSE), following the [hackathon's open-source requirement](https://gb-community-eng-hackathon-10-2026.teamdeel.workers.dev/hackathon#tracks): a public repository with an MIT, Apache-2.0, or AGPL-3.0 license. Generated sheets help select the art direction; no franchise assets are included in the game. The anti-slop rules retain their own MIT notice in `docs/anti-slop/LICENSE`.

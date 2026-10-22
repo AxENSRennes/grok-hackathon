@@ -1,5 +1,9 @@
 # Project instructions
 
+## Language
+
+Write all code and documentation in English, including identifiers, comments, docstrings, and project instructions. Keep new and updated content in English.
+
 ## Product
 
 Read `DESIGN.md` before changing the interface. Preserve the user's simple game-first direction. Do not add dashboards, round configuration panels, marketing sections, or explanatory copy without a request. There is no product player limit: 50 or 60 players are load-test samples only.

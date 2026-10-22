@@ -1,7 +1,7 @@
-# Cinq propositions grand écran
+# Five shared-screen proposals
 
-Ouvrir `index.html` pour comparer : 01 salle d'arcade, 02 rooftop néon, 03 station orbitale, 04 place de quartier, 05 plateau de jeu.
+Open `index.html` to compare: 01 arcade hall, 02 neon rooftop, 03 orbital station, 04 neighborhood square, 05 game-show stage.
 
-Générées avec l'outil intégré imagegen et la famille de personnages arcade choisie par l'utilisateur. Prompts et fichiers source dans `prompts.json`. Ce sont des maquettes statiques, pas des captures de l'application en fonctionnement. Les QR sont illustratifs. La question et ses réponses servent de contenu d'exemple commun aux cinq propositions.
+Generated with the built-in imagegen tool and the user's selected arcade character family. Prompts and source paths are in `prompts.json`. These are static mockups, not screenshots of the running application. QR codes are illustrative. All five proposals use the same sample question and answers for comparison.
 
-Vérification visuelle : les cinq images montrent une arène, des avatars de la famille arcade, un petit robot présentateur et un QR. Les décors de 01, 02 et 04 sont plus riches ; 05 favorise une lecture plus directe. Aucun de ces environnements n'est encore implémenté.
+Recorded visual review: all five images show an arena, arcade-family avatars, a small robot presenter, and a QR code. Environments 01, 02, and 04 have more detail; 05 favors immediate readability. At the time of that review, none of these environments had been implemented.
