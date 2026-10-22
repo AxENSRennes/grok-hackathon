@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import type { Appearance } from '../shared/protocol';
+import { COLORS, type Appearance } from '../shared/protocol';
 import { AVATAR_SIZE, drawAvatar } from './avatars';
 import { pixelText } from './arcadeArt';
 import './remote-control.css';
@@ -48,7 +48,7 @@ function Character({ appearance, facing, moving }: { appearance: Appearance; fac
 }
 
 function Arrow() {
-  return <svg viewBox="0 0 16 17" aria-hidden="true" shapeRendering="crispEdges"><path d="M7 1h3v3h3v3h3v3h-5v6H5v-6H0V7h3V4h4z" fill="currentColor" /></svg>;
+  return <svg viewBox="0 0 16 17" aria-hidden="true" shapeRendering="crispEdges"><path d="M7 1h2v2h2v2h2v2h2v2h-5v7H6V9H1V7h2V5h2V3h2z" fill="currentColor" /></svg>;
 }
 
 export function RemoteControl({ name, appearance, roomId, status, disabled = false, chatEnabled = true, pressed, notice, onDirection, onJump, onSend }: RemoteControlProps) {
@@ -69,29 +69,29 @@ export function RemoteControl({ name, appearance, roomId, status, disabled = fal
     if (jumpTimer.current) clearTimeout(jumpTimer.current);
     jumpTimer.current = setTimeout(() => setJumping(false), 620);
   };
-  const labels: Record<Direction, string> = { up: 'Monter', left: 'Aller à gauche', right: 'Aller à droite', down: 'Descendre' };
-  const connectionLabels: Record<ConnectionState, string> = { connected: 'Connecté', reconnecting: 'Reconnexion…', disconnected: 'Déconnecté', preview: 'Aperçu local' };
+  const labels: Record<Direction, string> = { up: 'Move up', left: 'Move left', right: 'Move right', down: 'Move down' };
+  const connectionLabels: Record<ConnectionState, string> = { connected: 'Connected', reconnecting: 'Reconnecting…', disconnected: 'Disconnected', preview: 'Local preview' };
   const arrow = (direction: Direction) => <button key={direction} type="button" className={`remote-direction remote-${direction} ${pressed.has(direction) ? 'is-pressed' : ''}`} aria-label={labels[direction]} aria-pressed={pressed.has(direction)} disabled={disabled}
     onPointerDown={event => { event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); onDirection(direction, true); }}
     onPointerUp={() => onDirection(direction, false)} onPointerCancel={() => onDirection(direction, false)} onLostPointerCapture={() => onDirection(direction, false)}
     onKeyDown={event => { if ((event.key === ' ' || event.key === 'Enter') && !event.repeat) { event.preventDefault(); onDirection(direction, true); } }}
     onKeyUp={event => { if (event.key === ' ' || event.key === 'Enter') { event.preventDefault(); onDirection(direction, false); } }}
     onBlur={() => onDirection(direction, false)}><Arrow /></button>;
-  return <main className="remote-control" style={{ '--player-color': ['#16bfff', '#ff369a', '#ffe15a', '#a776f6', '#ff9149', '#25d3ac', '#a9dcf5', '#f6efff'][appearance.color] } as CSSProperties} aria-label="Télécommande arcade">
+  return <main className="remote-control" style={{ '--player-color': COLORS[appearance.color] } as CSSProperties} aria-label="Arcade controller">
     <header className="remote-header">
-      <div className="remote-identity"><span className="remote-player-mark" aria-hidden="true" /><strong>{name || 'Joueur'}</strong></div>
+      <div className="remote-identity"><span className="remote-player-mark" aria-hidden="true" /><strong>{name || 'Player'}</strong></div>
       <div className={`remote-connection is-${status}`} role="status" aria-label={connectionLabels[status]}><span aria-hidden="true" className="remote-signal"><i /><i /><i /></span><span>{status === 'connected' ? roomId : connectionLabels[status]}</span></div>
     </header>
 
-    <section className="remote-movement" aria-label="Déplacement et saut">
+    <section className="remote-movement" aria-label="Movement and jump">
       <div className="remote-deck">
         <span className="remote-screw top-left" aria-hidden="true" /><span className="remote-screw top-right" aria-hidden="true" />
-        <div className="remote-pad" role="group" aria-label="Croix directionnelle">
+        <div className="remote-pad" role="group" aria-label="Directional pad">
           {arrow('up')}{arrow('left')}
-          <button className={`remote-jump ${jumping ? 'is-jumping' : ''}`} type="button" aria-label="Sauter" disabled={disabled} onClick={jump}>
+          <button className={`remote-jump ${jumping ? 'is-jumping' : ''}`} type="button" aria-label="Jump" disabled={disabled} onPointerDown={event => { event.preventDefault(); jump(); }} onClick={event => { if (event.detail === 0) jump(); }}>
             <span className="remote-jump-character"><Character appearance={appearance} facing={facing} moving={pressed.size > 0} /></span>
             <span className="remote-character-shadow" aria-hidden="true" />
-            <PixelWord text="SAUT" color="#0b102e" />
+            <PixelWord text="JUMP" color="#0b102e" />
           </button>
           {arrow('right')}{arrow('down')}
         </div>
@@ -99,7 +99,7 @@ export function RemoteControl({ name, appearance, roomId, status, disabled = fal
       </div>
     </section>
 
-    <section className="remote-chat" aria-label="Message au grand écran">
+    <section className="remote-chat" aria-label="Message to the shared screen">
       <form onSubmit={event => {
         event.preventDefault();
         if (!text.trim() || sent || !chatEnabled || (status !== 'connected' && status !== 'preview')) return;
@@ -108,8 +108,8 @@ export function RemoteControl({ name, appearance, roomId, status, disabled = fal
         sentTimer.current = setTimeout(() => setSent(false), 2500);
       }}>
         <label className="remote-chat-title" htmlFor="remote-message"><svg viewBox="0 0 18 18" aria-hidden="true" shapeRendering="crispEdges"><path d="M2 2h14v10H8l-4 4v-4H2z" fill="none" stroke="currentColor" strokeWidth="2" /><path d="M5 5h8v2H5z" fill="currentColor" /></svg><span className="sr-only">Message</span><PixelWord text="MESSAGE" /></label>
-        <textarea id="remote-message" rows={3} maxLength={80} value={text} onChange={event => setText(event.target.value)} placeholder={chatEnabled ? 'Ton message…' : 'Messages en pause'} disabled={!chatEnabled || (status !== 'connected' && status !== 'preview')} />
-        <div className="remote-chat-bottom"><small aria-live="polite">{sent ? 'Message envoyé' : text.length ? `${text.length}/80` : '\u00a0'}</small><button type="submit" className="remote-send" aria-label="Envoyer le message" disabled={sent || !text.trim() || !chatEnabled || (status !== 'connected' && status !== 'preview')}>
+        <textarea id="remote-message" rows={3} maxLength={80} value={text} onChange={event => setText(event.target.value)} placeholder={chatEnabled ? 'Your message…' : 'Messages paused'} disabled={!chatEnabled || (status !== 'connected' && status !== 'preview')} />
+        <div className="remote-chat-bottom"><small aria-live="polite">{sent ? 'Message sent' : text.length ? `${text.length}/80` : '\u00a0'}</small><button type="submit" className="remote-send" aria-label="Send message" disabled={sent || !text.trim() || !chatEnabled || (status !== 'connected' && status !== 'preview')}>
           <svg viewBox="0 0 20 20" aria-hidden="true" shapeRendering="crispEdges">{sent ? <path d="M2 10h4v4h3V9h3V6h3V3h3v5h-3v3h-3v3H9v4H5v-4H2z" fill="currentColor" /> : <path d="M2 2h4v2h4v2h4v2h4v4h-4v2h-4v2H6v2H2v-6h8V8H2z" fill="currentColor" />}</svg>
         </button></div>
       </form>
@@ -140,7 +140,7 @@ export function ControllerPreview() {
     return () => { window.removeEventListener('blur', clear); window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); document.removeEventListener('visibilitychange', visibility); if (messageTimer.current) clearTimeout(messageTimer.current); };
   }, []);
   return <RemoteControl name="Axel" appearance={{ color: 0, hair: 0, accessory: 'none' }} status="preview" pressed={pressed} onDirection={change} onJump={() => {}} onSend={value => {
-    setMessage(`Aperçu du message : ${value}`);
+    setMessage(`Message preview: ${value}`);
     if (messageTimer.current) clearTimeout(messageTimer.current);
     messageTimer.current = setTimeout(() => setMessage(''), 4000);
   }} notice={message} />;
