@@ -1,0 +1,32 @@
+{
+  "baselineRevision": "bc497e0",
+  "baseline": {
+    "mode": "baseline",
+    "artificialOneWayMs": 60,
+    "samples": 5,
+    "start90MedianMs": 265.86295900000005,
+    "reverse90MedianMs": 301.5330839999997,
+    "stopMedianMs": 436.27274999999986,
+    "stopDistanceMedianPx": 30.530776977539062,
+    "staleMovementPx": 22.16650390625,
+    "blockedPackets": 13,
+    "note": "Real server and WebSockets; injected application delays, screen-state observations, not rendered pixels or real mobile network performance."
+  },
+  "corrected": {
+    "mode": "corrected",
+    "artificialOneWayMs": 60,
+    "samples": 5,
+    "start90MedianMs": 205.33945900000003,
+    "reverse90MedianMs": 233.80999999999995,
+    "stopMedianMs": 332.2785829999998,
+    "stopDistanceMedianPx": 29.716949462890625,
+    "staleMovementPx": 0,
+    "blockedPackets": 1,
+    "note": "Real server and WebSockets; injected application delays, screen-state observations, not rendered pixels or real mobile network performance."
+  },
+  "reductionMs": {
+    "start90MedianMs": 60.5,
+    "reverse90MedianMs": 67.7,
+    "stopMedianMs": 104.0
+  }
+}
