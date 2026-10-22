@@ -33,6 +33,7 @@ export class Session {
   private pingTimer: ReturnType<typeof setInterval>;
   private telemetryTimer: ReturnType<typeof setInterval>;
   private movementTimer: ReturnType<typeof setInterval>;
+  private telemetryDue = false;
   private retryTimer?: ReturnType<typeof setTimeout>;
   private alive = true;
   private attempts = 0;
@@ -46,9 +47,9 @@ export class Session {
     this.room = room;
     this.bind(room);
     this.pingTimer = setInterval(() => this.ping(), options.role === 'player' ? CONTROLLER_PING_MS : 1000);
-    this.movementTimer = setInterval(() => this.flushMovement(), 25);
+    this.movementTimer = setInterval(() => { this.flushMovement(); this.flushTelemetry(); }, 25);
     this.telemetryTimer = setInterval(() => {
-      if (this.status === 'connected' && this.bufferedAmount() === 0) this.room.send('telemetry', this.telemetry.report());
+      this.telemetryDue = true;
     }, TELEMETRY_MS);
     document.addEventListener('visibilitychange', this.visibilityChanged);
   }
@@ -121,6 +122,11 @@ export class Session {
   private ping() {
     if (this.status !== 'connected' || document.hidden || this.bufferedAmount() > 0) return;
     const now = performance.now(); this.timing.sent(now); this.room.send('ping', now);
+  }
+  private flushTelemetry() {
+    if (!this.telemetryDue || this.status !== 'connected' || !this.room.connection.isOpen || this.bufferedAmount() > 0) return;
+    this.telemetryDue = false;
+    this.room.send('telemetry', this.telemetry.report());
   }
   private flushMovement() {
     if (this.status !== 'connected' || !this.room.connection.isOpen) return;
