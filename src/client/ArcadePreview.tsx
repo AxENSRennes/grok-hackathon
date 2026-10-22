@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
-import QRCode from 'qrcode';
+import { useEffect, useRef } from 'react';
 import { Arena, type ArenaSource } from './Arena';
+import { StageDisplay } from './StageDisplay';
 import { makeZones, WORLD, type PlayerView, type Question } from '../shared/protocol';
 
-const question: Question = { text: 'Tu codes plutôt…', mode: 'choice', labels: ['Solo', 'En équipe'], duration: 30 };
+const question: Question = { text: 'How do you prefer to code?', mode: 'choice', labels: ['Solo', 'In a team'], duration: 30 };
 function actor(id: string, x: number, color: number, hair: number): PlayerView {
   return { id, name: id, x, y: 545, color, hair, accessory: 'none', vx: 0, vy: 0, facing: 'down', jumpAt: 0, message: '', messageUntil: 0, online: true, lastSeq: 0 };
 }
@@ -15,9 +15,7 @@ export function ArcadePreview() {
     phase: 'question', question, zones: makeZones(question), result: null,
     endsAt: 0, serverTime: Date.now(), paused: false, chatEnabled: true,
   } });
-  const [qr, setQr] = useState('');
   const playUrl = `${location.origin}/play`;
-  useEffect(() => { void QRCode.toDataURL(playUrl, { width: 160, margin: 1, color: { dark: '#0b102e', light: '#f1f5ff' } }).then(setQr); }, [playUrl]);
   useEffect(() => {
     const held = new Set<string>();
     const player = source.current.snapshot.players[0];
@@ -47,9 +45,8 @@ export function ArcadePreview() {
     window.addEventListener('keydown', down); window.addEventListener('keyup', up); window.addEventListener('blur', clear);
     return () => { cancelAnimationFrame(frame); window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); window.removeEventListener('blur', clear); };
   }, []);
-  return <main className="stage arcade-preview" aria-label="Aperçu arcade avec deux personnages dessinés dans le code">
+  return <StageDisplay url={playUrl} initiallyStarted={!new URLSearchParams(location.search).has('welcome')}>
     <Arena session={source.current} onFps={() => {}} preview />
     <h1 className="sr-only">{question.text}</h1>
-    <a className="stage-qr" href={playUrl} aria-label="Ouvrir la page joueur ; cet aperçu n'est pas une salle multijoueur">{qr && <img src={qr} alt="Page joueur" />}<span>APERÇU</span></a>
-  </main>;
+  </StageDisplay>;
 }

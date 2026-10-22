@@ -1,0 +1,11 @@
+/* Keep the QR as the only focal point before the arcade floor is revealed. */
+.stage-welcome{display:grid;place-items:center;min-height:100svh;height:100dvh;overflow:auto;padding:24px;background:#0a102b}
+.stage-welcome-content{display:grid;justify-items:center;gap:28px}
+.stage-welcome-qr{display:grid;justify-items:center;gap:12px;text-decoration:none;color:#f1f5ff}
+.stage-welcome-qr img{display:block;width:min(68dvh,72vw,680px);height:auto;aspect-ratio:1;image-rendering:pixelated;border:4px solid #ffffff;box-shadow:6px 6px 0 #05091c}
+.stage-welcome-qr [role=status]{display:grid;place-items:center;width:min(68dvh,72vw,680px);aspect-ratio:1;background:#151e3b}
+.stage-welcome-qr .stage-room-code{font-size:clamp(14px,2vw,20px);font-weight:700;letter-spacing:.15em}
+.stage-play{min-width:180px;min-height:58px;font-size:24px;border-width:3px;box-shadow:5px 5px 0 #05091c}
+.stage-qr-link{display:grid;justify-items:center;gap:4px;text-decoration:none;color:#0a102b}
+.stage-display:focus{outline:none}
+@media(max-height:520px){.stage-welcome{padding:12px}.stage-welcome-content{gap:16px}.stage-welcome-qr{gap:8px}.stage-welcome-qr img,.stage-welcome-qr [role=status]{width:min(56dvh,60vw)}.stage-play{min-height:48px;font-size:20px}}

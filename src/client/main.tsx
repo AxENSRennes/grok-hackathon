@@ -1,6 +1,5 @@
 import { createRoot } from 'react-dom/client';
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from 'react';
-import QRCode from 'qrcode';
 import { COLORS, ACCESSORIES, type Appearance } from '../shared/protocol';
 import { Session, createSession, joinSession, randomToken, guestToken } from './session';
 import { useSession } from './useSession';
@@ -9,6 +8,7 @@ import './styles.css';
 import './arcade.css';
 import { authClient } from './auth';
 import { RemoteControl, ControllerPreview, type Direction } from './RemoteControl';
+import { StageDisplay } from './StageDisplay';
 
 const Arena = lazy(() => import('./Arena').then(module => ({ default: module.Arena })));
 const ArcadePreview = lazy(() => import('./ArcadePreview').then(module => ({ default: module.ArcadePreview })));
@@ -23,11 +23,6 @@ function Avatar({ appearance, size = 3 }: { appearance: Appearance; size?: numbe
 function Notice({ text }: { text: string }) { return text ? <div role="alert" className="notice">{text}</div> : null; }
 function Connection({ session }: { session: Session }) {
   return session.status === 'connected' ? null : <span className="connection" role="status">{session.status === 'reconnecting' ? 'Reconnecting…' : 'Disconnected'}</span>;
-}
-function QR({ url }: { url: string }) {
-  const [src, setSrc] = useState('');
-  useEffect(() => { let live = true; void QRCode.toDataURL(url, { width: 180, margin: 2, color: { dark: '#20382f', light: '#fffaf0' } }).then(data => { if (live) setSrc(data); }); return () => { live = false; }; }, [url]);
-  return src ? <img src={src} alt="Scan to play" /> : null;
 }
 function usePublicBase() {
   const [base, setBase] = useState(location.origin);
@@ -155,12 +150,11 @@ function Stage({ canHost }: { canHost: boolean }) {
   }, []);
   if (!session) return <main className="stage-loading"><Notice text={error} />{error ? <button onClick={() => { location.href = '/'; }}>Try again</button> : <span aria-label="Connecting">…</span>}</main>;
   const url = `${base}/play?room=${session.room.roomId}`;
-  return <main className="stage"><Suspense fallback={null}><Arena session={session} onFps={() => {}} /></Suspense>
-    <a className="stage-qr" href={url} target="_blank" rel="noreferrer"><QR url={url} /><span>{session.room.roomId}</span></a>
+  return <StageDisplay url={url} roomCode={session.room.roomId} storageKey={`sidequest:display:${session.room.roomId}`} status={<div className="stage-status"><Connection session={session} /><Notice text={session.notice} /></div>}>
+    <Suspense fallback={null}><Arena session={session} onFps={() => {}} /></Suspense>
     {session.snapshot.question && <h1 className="sr-only">{session.snapshot.question.text}</h1>}
-    <div className="stage-status"><Connection session={session} /><Notice text={session.notice} /></div>
     {session.snapshot.paused && <div className="pause-overlay">Ⅱ</div>}
-  </main>;
+  </StageDisplay>;
 }
 createRoot(document.getElementById('root')!).render(location.pathname === '/controller-preview' ? <ControllerPreview /> : location.pathname === '/preview'
   ? <Suspense fallback={<main className="stage-loading">…</main>}><ArcadePreview /></Suspense>

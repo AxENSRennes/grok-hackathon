@@ -3,7 +3,7 @@
 This brief records the user's choices, not a new design proposal.
 
 - Product: a shared pixel-art game for animating a hackathon. The fun comes from people moving, jumping, pushing each other, and answering questions by position.
-- Shared screen: the arena and a small QR code. Minimal text. No dashboard or visible round-management interface.
+- Shared screen: start with a large centered QR code and a single Play button. Players can join the room before launch. Play reveals the arena on the same page and keeps the same QR code small in the corner. Minimal text. No dashboard or visible round-management interface.
 - Arrival: scan QR, enter a nickname, choose a character and one or two accessories, appear in the room. No account creation. Character selection is a video-game carousel: large animated preview in the center, neighboring characters visible, swipe or left/right controls to browse; accessories are selected visually and previewed on the character. No text lists or dropdowns.
 - Characters: small, simple, rounded/blocky silhouettes between old-school Pokémon and Among Us, slightly more human. Easy to distinguish in a crowd. The generated character sheets are references, not approved production sprites.
 - Approved art direction: the arcade family in `design/character-palettes-2026-10-22/06-arcade-community-night.png`. Cyan, hot pink, yellow, orange and violet character clothing, dark navy pixel outlines, compact human chibi silhouettes, distinct hair and varied skin tones. All screens should belong to this same arcade world.
