@@ -23,8 +23,8 @@ if (production && (!process.env.BETTER_AUTH_SECRET || !process.env.HOST_EMAILS |
 }
 
 // Only the local provisioning command enables sign-up. The public server never does.
-export function createAuth(allowSignUp = false) {
-  return betterAuth({
+function authOptions(allowSignUp = false) {
+  return {
     appName: 'Sidequest Live',
     baseURL,
     secret: process.env.BETTER_AUTH_SECRET || 'sidequest-local-development-only-change-for-production',
@@ -39,14 +39,14 @@ export function createAuth(allowSignUp = false) {
       '/sign-in/anonymous': { window: 60, max: 180 },
     } },
     advanced: { useSecureCookies: production, ipAddress: { ipAddressHeaders: ['x-forwarded-for'] } },
-  });
+  };
 }
-export const auth = createAuth();
+export function createAuth(allowSignUp = false) { return betterAuth(authOptions(allowSignUp)); }
 export async function migrateAuth() {
-  const { runMigrations } = await getMigrations(auth.options);
+  const { runMigrations } = await getMigrations(authOptions());
   await runMigrations();
 }
-export function isHost(user: { email: string; isAnonymous?: boolean | null } | null | undefined) {
-  const emails = (process.env.HOST_EMAILS || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-  return !!user && !user.isAnonymous && emails.includes(user.email.toLowerCase());
-}
+// Fresh databases must be migrated before Better Auth validates its schema.
+await migrateAuth();
+export const auth = createAuth();
+export { isHost } from './host-policy.js';

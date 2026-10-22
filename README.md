@@ -22,6 +22,7 @@ Ouvrir **http://localhost:5173/** et se connecter comme organisateur : la salle 
 - `/?room=CODE` : jeu et QR ; sans code, une nouvelle salle est créée automatiquement.
 - `/host` et `/screen?room=CODE` : anciens liens compatibles, même écran épuré.
 - `/play?room=CODE` : pseudo, personnage/accessoire et télécommande tactile.
+- `/preview` : proposition visuelle arcade avec grande question et deux personnages locaux dessinés dans le code ; flèches pour déplacer le personnage cyan, espace pour sauter. Cet aperçu ne crée pas de salle ; son QR ouvre la page joueur.
 - Clavier de test : flèches / WASD / ZQSD, espace pour sauter (hors champs de texte).
 
 ## Ce qui fonctionne
@@ -37,7 +38,7 @@ Ouvrir **http://localhost:5173/** et se connecter comme organisateur : la salle 
 - Bulles de 80 caractères affichées quatre secondes ; délai minimal de 2,5 secondes entre messages ; coupure globale possible via l’API.
 - Résultats agrégés sauvegardés en JSONL dans `data/rounds.jsonl`, export JSON via l’API protégée. Les mouvements et le chat ne sont pas persistés.
 
-Les sprites actuels sont des repères temporaires dessinés dans le code. Les dix références graphiques sont dans `design/character-palettes-2026-10-22/index.html` ; elles ne sont pas encore intégrées comme sprites animés.
+Les avatars arcade sont dessinés dans le code sur une grille de 48 × 48 pixels : coiffures distinctes, palettes de vêtements, accessoires et poses de marche dans quatre directions. Le décor, le présentateur et la grande question en lettres pixel sont également dessinés dans le code. Les dix références graphiques sont dans `design/character-palettes-2026-10-22/index.html` ; les planches générées restent des références, pas des textures chargées par le jeu.
 
 ## Vérifier
 
@@ -45,11 +46,21 @@ Les sprites actuels sont des repères temporaires dessinés dans le code. Les di
 npm run check
 ```
 
-Cette commande vérifie les types et cinq tests unitaires ciblés dans un budget global de 15 secondes. Si le budget expire, elle s'arrête en échec (code 124), sans annoncer une validation. `npm test` lance uniquement ces tests avec le même plafond. Pas d'objectif de couverture ni de tests qui recopient l'implémentation.
+Cette commande vérifie uniquement les types. `npm test` lance seulement deux tests rapides de mouvement. Rien ne lance automatiquement la suite complète au démarrage du jeu ou à chaque modification. Quinze secondes est un ordre de grandeur, pas un délai d’arrêt imposé.
+
+| Commande explicite | Périmètre |
+| --- | --- |
+| `npm test` | Deux tests de mouvement : vitesse diagonale et arrêt après perte du contrôleur |
+| `npm run test:unit` | Tous les cas unitaires : physique, zones de vote, entrées malformées et autorisations organisateur |
+| `npm run test:integration` | Serveur et SQLite temporaires, vrais comptes Better Auth et connexions multijoueurs ; nettoyage automatique |
+| `npm run test:all` | Suite unitaire complète et intégration |
+| `npm run test:load` | 50 joueurs simulés sur un serveur existant ; accès organisateur à fournir |
+
+Les suites étendues restent disponibles pour les changements importants et les livraisons. Pas d’objectif de couverture artificiel ; pas de relance systématique après les petites retouches.
 
 Les parcours E2E se vérifient manuellement avec browser use pour les changements concernés : ouvrir le jeu, rejoindre par QR/lien, choisir son avatar, déplacer/sauter/envoyer un message, vérifier le grand écran et la reconnexion. Pas de suite E2E automatisée par défaut.
 
-Le build est réservé aux livraisons et changements de compilation. `npm run test:load` reste disponible explicitement pour les changements réseau/physique ; il nécessite un serveur lancé et est hors du contrôle rapide. Il connecte par défaut 50 joueurs, un écran et un organisateur (un échantillon, aucune limite produit), et vérifie déplacements, bornes, reprise d'identité, autorisations et résultats. Un test local ne mesure pas la latence réelle du Wi-Fi de l'événement.
+Le build est réservé aux livraisons et changements de compilation. `npm run test:load` reste disponible explicitement pour les changements réseau/physique ; il nécessite un serveur lancé et est hors du contrôle rapide. Il connecte 50 joueurs par défaut, un écran et un organisateur (un échantillon, aucune limite produit), et vérifie déplacements, bornes, reprise d'identité, autorisations et résultats. Un test local ne mesure pas la latence réelle du Wi-Fi de l'événement.
 
 ## Règles de conception
 
@@ -85,7 +96,11 @@ Cookie: <session Better Auth organisateur>
 {"action":"start","question":{"text":"Quel atelier ?","mode":"choice","labels":["Agents","Robotique"],"duration":30}}
 ```
 
-Actions : `start`, `finish`, `lobby`, `pause` (`paused`) et `chat` (`enabled`). Ne pas exposer la clé organisateur ni le cookie aux joueurs ou dans une URL. Les schémas et types sont dans `src/shared/protocol.ts`. L'export protégé est `GET /api/rooms/:roomId/results` avec la même session et le même header. Un futur adaptateur Grok devra passer par une frontière serveur autorisée.
+Actions : `next`, `start`, `finish`, `lobby`, `pause` (`paused`) et `chat` (`enabled`). Ne pas exposer la clé organisateur ni le cookie aux joueurs ou dans une URL. Les schémas et types sont dans `src/shared/protocol.ts`. L'export protégé est `GET /api/rooms/:roomId/results` avec la même session et le même header. Un futur adaptateur Grok devra passer par une frontière serveur autorisée.
+
+Les six questions retenues sont dans `src/server/questions/hackathon.en.json`, dans l'ordre de jeu, avec une durée provisoire de 30 secondes chacune. Envoyer `{"action":"next"}` à la route de commandes lance la suivante après les résultats (ou depuis le lobby). Une manche en cours doit d'abord se terminer. La dernière question est explicitement marquée `closing` et la séquence s'arrête ensuite ; `lobby` ne remet pas le compteur à zéro. Une nouvelle salle recommence la sélection. Les commandes `start` avec une question libre restent disponibles.
+
+`GET /api/rooms/:roomId/questions` renvoie la sélection de la salle avec les mêmes protections que les commandes. `QuestionSource.load()` dans `src/server/questions/index.ts` est la frontière à remplacer par un adaptateur Supabase ou Grok : son résultat est validé, puis figé à la création de chaque salle. Aucun accès externe n'intervient dans la boucle physique. Aucun panneau de configuration n'est ajouté.
 
 Cognee pourra enrichir les questions avec le contexte et les résultats passés ; Supabase pourra remplacer le stockage local des manches. Ces intégrations restent à connecter et ne participent pas à la simulation physique.
 

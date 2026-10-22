@@ -14,8 +14,12 @@
     "build": "npm run typecheck && vite build && tsup --config tsup.config.ts",
     "auth:create-host": "tsx scripts/create-host.ts",
     "start": "node dist/server/index.js",
-    "check": "node scripts/check.mjs",
-    "test": "node scripts/check.mjs --unit-only",
+    "check": "npm run typecheck",
+    "test": "npm run test:smoke",
+    "test:smoke": "vitest run src/server/physics.test.ts -t 'normalizes diagonals|stops after a controller disappears'",
+    "test:unit": "vitest run",
+    "test:integration": "node scripts/test-integration.mjs",
+    "test:all": "npm run test:unit && npm run test:integration",
     "test:load": "tsx scripts/load-test.ts"
   },
   "dependencies": {

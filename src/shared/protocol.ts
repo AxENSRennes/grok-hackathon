@@ -4,7 +4,7 @@ export const WORLD = { width: 1280, height: 760, left: 60, right: 1220, top: 220
 export const TICK_RATE = 60;
 export const PATCH_MS = 33;
 export const PLAYER_RADIUS = 14;
-export const COLORS = ['#f6bc59', '#84c8ae', '#ed91a8', '#91b7ec', '#c4a4e3', '#ee9676', '#d7d28a', '#b8ced3'] as const;
+export const COLORS = ['#16bfff', '#ff369a', '#ffe15a', '#a776f6', '#ff9149', '#25d3ac', '#a9dcf5', '#f6efff'] as const;
 export const ACCESSORIES = ['none', 'cap', 'leaf', 'glasses'] as const;
 export type Accessory = typeof ACCESSORIES[number];
 export type Role = 'host' | 'screen' | 'player';
@@ -27,6 +27,7 @@ export const questionSchema = z.object({
 });
 export const commandSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('start'), question: questionSchema }),
+  z.object({ action: z.literal('next') }),
   z.object({ action: z.literal('finish') }),
   z.object({ action: z.literal('lobby') }),
   z.object({ action: z.literal('chat'), enabled: z.boolean() }),

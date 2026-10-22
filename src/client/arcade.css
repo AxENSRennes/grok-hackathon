@@ -1,0 +1,20 @@
+:root{color:#f1f5ff;background:#0a102b;--ink:#f1f5ff;--paper:#151e3b;--gold:#ffe15a}
+body{background:#0a102b}
+button{color:#f1f5ff;background:#253254;border-color:#6676a0;box-shadow:3px 3px 0 #080d22}
+button:focus-visible,a:focus-visible{outline:3px solid #ffe15a;outline-offset:5px}
+.primary{background:#16bfff;color:#0a102b;border-color:#6ce0ff}
+input,textarea,select{background:#101831;color:#f1f5ff;border-color:#4d5f8a}
+input::placeholder,textarea::placeholder{color:#a1afcc}
+.stage,.stage-loading{background:#0a102b}
+.stage-qr{top:auto;bottom:max(18px,calc((100dvh - 59.375vw)/2 + 24px));right:max(18px,calc((100vw - 168.421dvh)/2 + 24px));gap:4px;padding:6px;background:#f1f5ff;color:#0a102b;border:4px solid #0a102b;box-shadow:4px 4px 0 #070d24}
+.stage-qr img{width:86px;height:86px}
+.stage-qr span{font-size:9px;letter-spacing:2px;font-weight:800}
+.join-card{background:#151e3b;border-color:#64759d;box-shadow:6px 6px 0 #080d22}
+.controller{background:#151e3b}
+.player-identity small,.inline small{color:#a8b9d9}
+.player-identity canvas{width:48px!important;height:48px!important}
+.chat-half{border-color:#35496d}
+.dpad .jump{background:#ffe15a;color:#0a102b;border-color:#fff0a0}
+.notice{background:#45233c;color:#ffe2ed;border-color:#ff75b2}
+.connection{color:#ffe15a}
+@media(max-width:620px){.stage-qr{top:auto}.stage-qr img{width:64px;height:64px}.stage-qr span{font-size:8px}}

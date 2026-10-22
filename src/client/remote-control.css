@@ -1,0 +1,59 @@
+.remote-control {
+  --remote-ink:#090e26; --remote-text:#f1f5ff; --remote-cyan:#27caff; --remote-pink:#ff62b0;
+  width:100%; max-width:460px; min-height:100svh; margin:0 auto;
+  padding:max(24px,env(safe-area-inset-top)) 24px max(28px,env(safe-area-inset-bottom));
+  background:#10172f; color:var(--remote-text); display:flex; flex-direction:column;
+  border-left:4px solid #080d23; border-right:4px solid #080d23; overscroll-behavior:none;
+}
+.remote-header {display:flex; align-items:center; justify-content:space-between; gap:16px; min-height:44px; padding:0 2px 16px; border-bottom:2px solid #283656}
+.remote-identity {display:flex; align-items:center; gap:12px; min-width:0}
+.remote-identity strong {font-size:19px; letter-spacing:.02em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.remote-player-mark {width:10px; height:10px; flex:none; background:var(--player-color); box-shadow:0 -3px 0 #10172f,3px 0 0 #10172f;}
+.remote-connection {display:flex; flex-direction:column; align-items:flex-end; gap:7px; flex-shrink:0; color:#bbc9e4; font-size:9px; letter-spacing:.06em}
+.remote-signal {display:flex; align-items:flex-end; gap:3px; height:13px; color:#38d9ac}
+.remote-signal i {display:block; width:4px; background:currentColor}
+.remote-signal i:nth-child(1){height:5px}.remote-signal i:nth-child(2){height:9px}.remote-signal i:nth-child(3){height:13px}
+.is-preview .remote-signal {color:#ffe15a}.is-reconnecting .remote-signal,.is-disconnected .remote-signal{color:#ff8bad}
+.remote-movement {flex:1 0 auto; display:flex; align-items:center; justify-content:center; min-height:390px; padding:28px 0 32px}
+.remote-deck {position:relative; width:100%; padding:24px 14px 28px; background:#1c2948; border:3px solid #41557e; border-top-color:#6279a2; border-bottom-color:#263759; box-shadow:0 7px 0 #080d23, inset 0 3px 0 #354968;}
+.remote-screw {position:absolute; width:6px; height:6px; background:#0a112a; box-shadow:inset 2px 2px 0 #60779c}
+.remote-screw.top-left{top:8px;left:8px}.remote-screw.top-right{top:8px;right:8px}.remote-screw.bottom-left{bottom:8px;left:8px}.remote-screw.bottom-right{bottom:8px;right:8px}
+.remote-pad {--key:clamp(70px,21vw,88px);display:grid; grid-template-columns:repeat(3,var(--key)); grid-template-rows:repeat(3,80px); gap:8px; justify-content:center; touch-action:none; user-select:none; -webkit-user-select:none;}
+.remote-pad button {border:3px solid #0b1531; border-top-color:#85e4ff; border-left-color:#4bd6ff; border-right-color:#1377ae; border-bottom:7px solid #126999; padding:0; border-radius:0; color:#0a2343; background:var(--remote-cyan); box-shadow:0 5px 0 #080e26; min-width:0; touch-action:none; -webkit-user-select:none; user-select:none;}
+.remote-pad button:active,.remote-pad button.is-pressed {transform:translateY(4px);box-shadow:0 1px 0 #080e26; border-bottom-width:3px; background:#85e5ff}
+.remote-pad button:focus-visible,.remote-send:focus-visible {outline:3px solid #ffe15a; outline-offset:5px}
+.remote-pad button:disabled {opacity:.4;transform:none;cursor:not-allowed}
+.remote-direction svg {width:29px;height:31px;filter:drop-shadow(0 2px 0 #6ce4ff)}
+.remote-up{grid-area:1/2}.remote-left{grid-area:2/1}.remote-right{grid-area:2/3}.remote-down{grid-area:3/2}
+.remote-left svg{transform:rotate(-90deg)}.remote-right svg{transform:rotate(90deg)}.remote-down svg{transform:rotate(180deg)}
+.remote-pad .remote-jump {position:relative;grid-area:2/2;background:var(--remote-pink);border-top-color:#ffb1d7;border-left-color:#ff96cd;border-right-color:#bd3d80;border-bottom-color:#a62b70;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding-bottom:7px;overflow:visible;}
+.remote-pad .remote-jump:active {background:#ff99cc}
+.remote-jump > canvas {width:39px;height:auto;z-index:2; flex:none}
+.remote-jump-character {position:absolute; bottom:24px;left:50%;width:67px;height:67px;transform:translateX(-50%);z-index:2;pointer-events:none}
+.remote-jump-character canvas{display:block;width:100%;height:100%}
+.remote-character-shadow{position:absolute;bottom:24px;left:50%;width:35px;height:5px;transform:translateX(-50%);background:#9d326d;z-index:1}
+.remote-jump.is-jumping .remote-jump-character {animation:remote-hop 620ms cubic-bezier(.2,.55,.45,1)}
+.remote-jump.is-jumping .remote-character-shadow {animation:remote-shadow 620ms ease-out}
+@keyframes remote-hop {0%,100%{translate:0 0}45%{translate:0 -28px}}
+@keyframes remote-shadow {0%,100%{scale:1}45%{scale:.6}}
+.remote-chat {position:relative;flex:0 0 auto; margin:0 0 18px; background:#161f3a; border:3px solid #455b83; border-top-color:#607aa2; box-shadow:0 6px 0 #080d23;}
+.remote-chat:after {content:'';position:absolute;bottom:-15px;left:20px;width:18px;height:12px;background:#161f3a;border-left:3px solid #455b83;border-bottom:3px solid #455b83;box-shadow:-3px 3px 0 #080d23;}
+.remote-chat:focus-within {border-color:#79daff}
+.remote-chat form {padding:20px 18px 16px;}
+.remote-chat-title {display:flex;align-items:center;gap:11px;margin:0 0 17px;color:#a7c3e8}
+.remote-chat-title > svg{width:18px;height:18px;flex:none}.remote-chat-title > canvas{width:82px;height:14px}
+.remote-chat textarea {min-height:100px;max-height:220px;resize:vertical;background:transparent;color:#f1f5ff;border:0;padding:0;box-shadow:none;line-height:1.65;font-family:inherit;font-size:16px; border-radius:0}
+.remote-chat textarea:focus {outline:none}
+.remote-chat textarea::placeholder {color:#a8b7d0;opacity:1}
+.remote-chat textarea:disabled {opacity:.6}
+.remote-chat-bottom {display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;min-height:48px}
+.remote-chat-bottom small {font-size:11px;line-height:1.4;color:#c4d2ec}
+.remote-send {flex:none;width:52px;min-height:48px;padding:10px;background:#27caff;color:#0b1531;border:2px solid #91e7ff;border-right-color:#1776a1;border-bottom:5px solid #11618d;box-shadow:0 3px 0 #080e26;border-radius:0}
+.remote-send svg{width:22px;height:22px}
+.remote-send:disabled {opacity:1;background:#293b5d;color:#a7badd;border-color:#50688e;border-bottom-color:#1d2b47;cursor:default}
+.remote-send:active{transform:translateY(3px);box-shadow:none}
+.remote-notice{margin:2px 0 10px;padding:12px;border:2px solid #607aa2;background:#1c2948;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+@media(min-height:780px){.remote-movement{min-height:440px}.remote-chat textarea{min-height:115px}}
+@media(max-width:360px){.remote-control{padding-left:16px;padding-right:16px}.remote-deck{padding-left:7px;padding-right:7px}.remote-pad{--key:70px;grid-template-rows:repeat(3,72px);gap:7px}.remote-movement{min-height:340px}.remote-identity strong{font-size:17px}.remote-jump-character{width:62px;height:62px}}
+@media(orientation:landscape) and (max-height:560px){.remote-control{max-width:900px;display:grid;grid-template-columns:1fr 1fr;column-gap:24px;min-height:100svh}.remote-header{grid-column:1/-1}.remote-movement{min-height:290px;padding:20px 0}.remote-deck{width:auto;padding:14px 22px 20px}.remote-pad{--key:64px;grid-template-rows:repeat(3,62px);gap:6px}.remote-chat{align-self:center}.remote-jump-character{width:54px;height:54px;bottom:19px}.remote-pad .remote-jump{padding-bottom:3px}.remote-notice{grid-column:1/-1}}
+@media(prefers-reduced-motion:reduce){.remote-jump.is-jumping .remote-jump-character,.remote-jump.is-jumping .remote-character-shadow{animation:none}}

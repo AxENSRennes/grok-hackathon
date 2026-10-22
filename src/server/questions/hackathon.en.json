@@ -1,0 +1,60 @@
+{
+  "id": "london-hackathon-2026-10-22",
+  "questions": [
+    {
+      "id": "explain-your-code",
+      "question": {
+        "text": "How much of your code could you explain without asking your AI?",
+        "mode": "scale",
+        "labels": ["Every single line", "Please don't ask"],
+        "duration": 30
+      }
+    },
+    {
+      "id": "rewrite-in-php",
+      "question": {
+        "text": "Your AI agent suggests rewriting everything in PHP. Your reaction?",
+        "mode": "choice",
+        "labels": ["You're fired", "Let it cook", "At least it ships", "What is PHP?"],
+        "duration": 30
+      }
+    },
+    {
+      "id": "live-demo-disaster",
+      "question": {
+        "text": "What's most likely to break your live demo?",
+        "mode": "choice",
+        "labels": ["Wi-Fi", "API credits", "One last deploy", "Me"],
+        "duration": 30
+      }
+    },
+    {
+      "id": "production-ready",
+      "question": {
+        "text": "How production-ready is your project?",
+        "mode": "scale",
+        "labels": ["NASA could use it", "Please don't refresh"],
+        "duration": 30
+      }
+    },
+    {
+      "id": "who-deserves-the-prize",
+      "question": {
+        "text": "Who deserves the prize if you win?",
+        "mode": "choice",
+        "labels": ["Me", "My team", "My agent", "The person who brought pizza"],
+        "duration": 30
+      }
+    },
+    {
+      "id": "same-time-next-week",
+      "closing": true,
+      "question": {
+        "text": "Same time next week?",
+        "mode": "choice",
+        "labels": ["I'm in", "Only for the pizza", "My agent already RSVP'd", "I'll still be deploying"],
+        "duration": 30
+      }
+    }
+  ]
+}

@@ -4,18 +4,21 @@ import QRCode from 'qrcode';
 import { COLORS, ACCESSORIES, type Appearance } from '../shared/protocol';
 import { Session, createSession, joinSession, randomToken, guestToken } from './session';
 import { useSession } from './useSession';
-import { drawAvatar } from './avatars';
+import { AVATAR_SIZE, drawAvatar } from './avatars';
 import './styles.css';
+import './arcade.css';
 import { authClient } from './auth';
+import { RemoteControl, ControllerPreview, type Direction } from './RemoteControl';
 
 const Arena = lazy(() => import('./Arena').then(module => ({ default: module.Arena })));
+const ArcadePreview = lazy(() => import('./ArcadePreview').then(module => ({ default: module.ArcadePreview })));
 const roomFromUrl = () => (new URLSearchParams(location.search).get('room') || '').toUpperCase();
 const initialAppearance: Appearance = { color: 0, hair: 0, accessory: 'none' };
 const accessoryNames = { none: 'No accessory', cap: 'Cap', leaf: 'Leaf', glasses: 'Glasses' };
 function Avatar({ appearance, size = 3 }: { appearance: Appearance; size?: number }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   useEffect(() => { if (canvas.current) drawAvatar(canvas.current.getContext('2d')!, appearance); }, [appearance.color, appearance.hair, appearance.accessory]);
-  return <canvas ref={canvas} width={24} height={32} style={{ width: 24 * size, height: 32 * size }} aria-label="Your character" />;
+  return <canvas ref={canvas} width={AVATAR_SIZE} height={AVATAR_SIZE} style={{ width: AVATAR_SIZE * size, height: AVATAR_SIZE * size }} aria-label="Your character" />;
 }
 function Notice({ text }: { text: string }) { return text ? <div role="alert" className="notice">{text}</div> : null; }
 function Connection({ session }: { session: Session }) {
@@ -55,7 +58,7 @@ function JoinPlayer() {
     finally { setBusy(false); }
   };
   return <main className="join"><form className="join-card" onSubmit={join}>
-    <div className="avatar-preview"><Avatar appearance={appearance} size={5} /></div>
+    <div className="avatar-preview"><Avatar appearance={appearance} size={3} /></div>
     {!roomFromUrl() && <><label className="sr-only" htmlFor="join-room">Room code</label><input id="join-room" value={roomId} onChange={e => setRoomId(e.target.value.toUpperCase())} placeholder="Room code" maxLength={8} required /></>}
     <label className="sr-only" htmlFor="name">Nickname</label><input id="name" placeholder="Your nickname" value={name} onChange={e => setName(e.target.value)} maxLength={18} required autoComplete="nickname" />
     <div className="swatches">{COLORS.map((color, i) => <button type="button" key={color} className={`swatch ${appearance.color === i ? 'selected' : ''}`} style={{ backgroundColor: color }} onClick={() => setAppearance({ ...appearance, color: i })} aria-label={`Color ${i + 1}`} aria-pressed={appearance.color === i} />)}</div>
@@ -64,12 +67,10 @@ function JoinPlayer() {
     <Notice text={error} /><button className="primary full" disabled={busy}>{busy ? '…' : 'Play'}</button>
   </form></main>;
 }
-type Direction = 'up' | 'down' | 'left' | 'right';
 function Controller({ session: initial }: { session: Session }) {
   const session = useSession(initial)!;
   const held = useRef(new Set<Direction>());
   const [pressed, setPressed] = useState<Set<Direction>>(new Set());
-  const [text, setText] = useState(''), [sent, setSent] = useState(false);
   const player = session.snapshot.players.find(p => p.id === session.playerId);
   const send = () => session.input(Number(held.current.has('right')) - Number(held.current.has('left')), Number(held.current.has('down')) - Number(held.current.has('up')));
   const press = (direction: Direction, down: boolean) => {
@@ -82,7 +83,7 @@ function Controller({ session: initial }: { session: Session }) {
     const keydown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return;
       if (keys[e.key]) { e.preventDefault(); press(keys[e.key], true); }
-      if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) session.jump(); }
+      if (e.code === 'Space' && !(e.target instanceof HTMLButtonElement)) { e.preventDefault(); if (!e.repeat) session.jump(); }
     };
     const keyup = (e: KeyboardEvent) => { if (keys[e.key]) press(keys[e.key], false); };
     const visibility = () => { if (document.hidden) clear(); };
@@ -96,10 +97,7 @@ function Controller({ session: initial }: { session: Session }) {
   useEffect(() => {
     if (disabled) { held.current.clear(); setPressed(new Set()); session.input(0, 0); }
   }, [disabled, session]);
-  const arrow = (direction: Direction, glyph: string, label: string) => <button type="button" className={`direction ${direction} ${pressed.has(direction) ? 'pressed' : ''}`} aria-label={label} aria-pressed={pressed.has(direction)} disabled={disabled}
-    onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); press(direction, true); }}
-    onPointerUp={() => press(direction, false)} onPointerCancel={() => press(direction, false)} onLostPointerCapture={() => press(direction, false)}>{glyph}</button>;
-  return <main className="controller page"><header><div className="player-identity">{player && <Avatar appearance={player} size={1.5} />}<div><strong>{player?.name || 'Your character'}</strong><small>ROOM {session.room.roomId}</small></div></div><Connection session={session} /></header><section className="control-half"><div className={`dpad ${disabled ? 'disabled' : ''}`} aria-label="Controller">{arrow('up', '▲', 'Move up')}{arrow('left', '◀', 'Move left')}<button className="jump" type="button" aria-label="Jump" disabled={disabled} onPointerDown={e => { e.preventDefault(); session.jump(); }}>JUMP</button>{arrow('right', '▶', 'Move right')}{arrow('down', '▼', 'Move down')}</div></section><section className="chat-half"><label className="sr-only" htmlFor="chat">Message</label><form onSubmit={e => { e.preventDefault(); if (text.trim()) { session.chat(text.trim()); setText(''); setSent(true); setTimeout(() => setSent(false), 2500); } }}><textarea id="chat" value={text} onChange={e => setText(e.target.value)} placeholder={session.snapshot.chatEnabled ? 'Your message…' : 'Chat paused'} maxLength={80} disabled={!session.snapshot.chatEnabled || session.status !== 'connected'} rows={2} /><div className="inline"><small>{text.length}/80</small><button aria-label="Send message" disabled={sent || !text.trim() || !session.snapshot.chatEnabled || session.status !== 'connected'}>{sent ? '✓' : '➤'}</button></div></form></section><Notice text={session.notice} /></main>;
+  return <RemoteControl name={player?.name || 'Joueur'} appearance={player || initialAppearance} roomId={session.room.roomId} status={session.status === 'connected' ? 'connected' : session.status === 'closed' ? 'disconnected' : 'reconnecting'} disabled={disabled} chatEnabled={session.snapshot.chatEnabled} pressed={pressed} notice={session.notice} onDirection={press} onJump={() => session.jump()} onSend={text => session.chat(text)} />;
 }
 function StageAccess() {
   const [host, setHost] = useState<boolean | null>(null);
@@ -159,9 +157,11 @@ function Stage({ canHost }: { canHost: boolean }) {
   const url = `${base}/play?room=${session.room.roomId}`;
   return <main className="stage"><Suspense fallback={null}><Arena session={session} onFps={() => {}} /></Suspense>
     <a className="stage-qr" href={url} target="_blank" rel="noreferrer"><QR url={url} /><span>{session.room.roomId}</span></a>
-    {session.snapshot.question && <div className="stage-question">{session.snapshot.question.text}</div>}
+    {session.snapshot.question && <h1 className="sr-only">{session.snapshot.question.text}</h1>}
     <div className="stage-status"><Connection session={session} /><Notice text={session.notice} /></div>
     {session.snapshot.paused && <div className="pause-overlay">Ⅱ</div>}
   </main>;
 }
-createRoot(document.getElementById('root')!).render(location.pathname === '/play' ? <JoinPlayer /> : <StageAccess />);
+createRoot(document.getElementById('root')!).render(location.pathname === '/controller-preview' ? <ControllerPreview /> : location.pathname === '/preview'
+  ? <Suspense fallback={<main className="stage-loading">…</main>}><ArcadePreview /></Suspense>
+  : location.pathname === '/play' ? <JoinPlayer /> : <StageAccess />);

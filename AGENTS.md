@@ -6,10 +6,13 @@ Read `DESIGN.md` before changing the interface. Preserve the user's simple game-
 
 ## Verification
 
-- Run `npm run check` once after relevant code changes: type checking plus the small unit suite, within a single 15-second budget. `npm test` runs just the unit suite under the same budget.
+- No CI for now. Keep GitHub Actions disabled and do not add workflows or automatic PR/push checks unless the user explicitly asks to enable them. Prioritize rapid local development.
+- Optimize for development speed. Do not run tests after every small edit. Batch related work and verify only the affected behavior at meaningful milestones or before delivery.
+- `npm run check` checks types only. `npm test` runs just two movement smoke tests. The larger suites are opt-in: `test:unit`, `test:integration`, `test:all`, and `test:load`. Never silently run all suites by default or add them to dev/build hooks.
+- Fifteen seconds is an approximate speed target, not a hard timeout. A justified integration or release check may take longer; avoid repeating successful checks without a new reason.
 - Keep unit tests for consequential behavior: authoritative movement, bounded collisions, disconnected input, and spatial vote counting. Add a test only for a meaningful new risk or regression, not to mirror implementation or reach coverage targets.
 - Verify affected user journeys manually with browser use when changing UI or multiplayer behavior. Exercise only the relevant controls and states. Do not add an automated E2E suite by default.
-- Build for release or when changing bundling/dependencies; run load tests only when changing networking, synchronization, physics, or capacity. Both are explicit extra checks, outside the routine 15-second command. If either would exceed the user's testing budget, report the remaining verification instead of silently running a long check.
+- Build for release or when changing bundling/dependencies; run load tests only when changing networking, synchronization, physics, or capacity. Both are explicit extra checks, separate from routine type checking.
 - No full build, load run, or browser walkthrough for documentation-only edits. Avoid repeating checks that already passed unless a new edit or failure justifies it. A timeout is incomplete verification, never a pass.
 - Report the result briefly; distinguish local measurements from event Wi-Fi performance.
 

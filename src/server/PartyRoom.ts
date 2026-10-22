@@ -6,6 +6,7 @@ import { stepPhysics, type HeldInput } from './physics.js';
 import { appearanceSchema, inputSchema, commandSchema, makeZones, zoneAt, TICK_RATE, PATCH_MS, WORLD, type HostCommand, type Question, type RoundResult, type Zone } from '../shared/protocol.js';
 import { persistResult } from './results.js';
 import { auth, isHost } from './auth.js';
+import { loadQuestionDeck, QuestionSequence, type QuestionDeck } from './questions/index.js';
 
 export const rooms = new Map<string, PartyRoom>();
 const tokenSchema = z.string().regex(/^[a-zA-Z0-9_-]{32,128}$/);
@@ -32,14 +33,19 @@ export class PartyRoom extends Room<{ state: PartyState }> {
   private chatAt = new Map<string, number>();
   private roundNumber = 0;
   private question: Question | null = null;
+  private questionDeck!: QuestionDeck;
+  private questions!: QuestionSequence;
   private zones: Zone[] = [];
   private pausedAt = 0;
   private lastOccupied = Date.now();
   readonly history: RoundResult[] = [];
 
-  onCreate(options: unknown) {
+  async onCreate(options: unknown) {
     const parsed = joinSchema.safeParse(options);
     if (!parsed.success || parsed.data.role !== 'host') throw new ServerError(400, 'Create the room from the host screen.');
+    // Snapshot the source once so external edits cannot change an ongoing session.
+    this.questionDeck = await loadQuestionDeck();
+    this.questions = new QuestionSequence(this.questionDeck);
     if (rooms.size >= Number(process.env.MAX_ROOMS || 5)) throw new ServerError(429, 'The maximum number of rooms has been reached.');
     this.hostKey = parsed.data.hostKey;
     this.roomId = randomBytes(4).toString('hex').toUpperCase();
@@ -133,6 +139,8 @@ export class PartyRoom extends Room<{ state: PartyState }> {
   }
   onDispose() { rooms.delete(this.roomId); }
 
+  getQuestions() { return structuredClone(this.questionDeck); }
+
   authorize(key: string) {
     const provided = Buffer.from(key), expected = Buffer.from(this.hostKey);
     return provided.length === expected.length && timingSafeEqual(provided, expected);
@@ -140,6 +148,11 @@ export class PartyRoom extends Room<{ state: PartyState }> {
   command(command: HostCommand) {
     const now = Date.now();
     switch (command.action) {
+      case 'next': {
+        if (this.state.phase === 'question') throw new Error('Finish the current round before starting another.');
+        this.command({ action: 'start', question: this.questions.next().question });
+        break;
+      }
       case 'start': {
         if (this.state.phase === 'question') throw new Error('Finish the current round before starting another.');
         this.question = command.question;

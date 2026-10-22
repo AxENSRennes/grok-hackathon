@@ -2,64 +2,63 @@ import { useEffect, useRef } from 'react';
 import Phaser from 'phaser';
 import type { Session } from './session';
 import { WORLD, type PlayerView } from '../shared/protocol';
-import { drawAvatar } from './avatars';
+import { AVATAR_SIZE, drawAvatar } from './avatars';
+import { drawArcadeQuestion, drawArcadeRoom } from './arcadeArt';
 
-interface Visual { container: Phaser.GameObjects.Container; sprite: Phaser.GameObjects.Image; label: Phaser.GameObjects.Text; bubble: Phaser.GameObjects.Text; shadow: Phaser.GameObjects.Ellipse; x: number; y: number; signature: string }
+export type ArenaSource = Pick<Session, 'snapshot' | 'offset'>;
+interface Visual { container: Phaser.GameObjects.Container; sprite: Phaser.GameObjects.Image; bubble: Phaser.GameObjects.Text; shadow: Phaser.GameObjects.Ellipse; x: number; y: number; signature: string }
 class ArenaScene extends Phaser.Scene {
   private visuals = new Map<string, Visual>();
   private zoneKey = '';
   private zoneObjects: Phaser.GameObjects.GameObject[] = [];
   private floor!: Phaser.GameObjects.Graphics;
-  constructor(private session: Session, private reportFps: (fps: number) => void) { super('arena'); }
+  private questionKey = '';
+  private questionTexture!: Phaser.Textures.CanvasTexture;
+  constructor(private session: ArenaSource, private reportFps: (fps: number) => void, private preview = false) { super('arena'); }
   create() {
-    this.cameras.main.setBackgroundColor('#a0b7a0');
-    const g = this.add.graphics();
-    g.fillStyle(0x314d40).fillRect(24, 24, 1232, 712);
-    g.fillStyle(0xd8c7a0).fillRect(40, 40, 1200, 680);
-    for (let y = 40; y < 720; y += 32) {
-      g.lineStyle(1, 0xb8a47d, 0.6).lineBetween(40, y, 1240, y);
-      for (let x = 40 + ((y / 32) % 2) * 64; x < 1240; x += 128) g.lineBetween(x, y, x, Math.min(y + 32, 720));
-    }
-    g.fillStyle(0x557c67).fillRect(60, 48, 1160, 145);
-    g.fillStyle(0x304c40).fillRect(80, 180, 1120, 16);
-    for (const x of [80, 1200]) {
-      g.fillStyle(0x56684e).fillRect(x - 13, 86, 26, 32);
-      g.fillStyle(0x88a778).fillRect(x - 20, 54, 40, 40);
-      g.fillStyle(0xa1b98b).fillRect(x - 12, 46, 26, 22);
-    }
+    this.cameras.main.setBackgroundColor('#0a102b');
+    const background = this.textures.createCanvas('arcade-room', WORLD.width, WORLD.height)!;
+    drawArcadeRoom(background.getContext()); background.refresh();
+    this.add.image(0, 0, 'arcade-room').setOrigin(0);
     this.floor = this.add.graphics();
+    this.questionTexture = this.textures.createCanvas('arcade-question', WORLD.width, 190)!;
+    this.add.image(0, 0, 'arcade-question').setOrigin(0).setDepth(2);
     this.time.addEvent({ delay: 1000, loop: true, callback: () => this.reportFps(Math.round(this.game.loop.actualFps)) });
   }
-  private texture(player: PlayerView) {
-    const key = `guest-${player.color}-${player.hair}-${player.accessory}`;
+  private texture(player: PlayerView, step = 0) {
+    const key = `guest-${player.color}-${player.hair}-${player.accessory}-${player.facing}-${step}`;
     if (!this.textures.exists(key)) {
-      const texture = this.textures.createCanvas(key, 24, 32)!;
-      drawAvatar(texture.getContext(), player);
+      const texture = this.textures.createCanvas(key, AVATAR_SIZE, AVATAR_SIZE)!;
+      drawAvatar(texture.getContext(), player, { facing: player.facing, step });
       texture.refresh();
     }
     return key;
   }
   private addPlayer(player: PlayerView): Visual {
-    const shadow = this.add.ellipse(0, 1, 31, 10, 0x23392d, 0.22);
-    const sprite = this.add.image(0, 0, this.texture(player)).setOrigin(0.5, 1).setScale(2);
-    const label = this.add.text(0, 8, player.name, { fontFamily: 'monospace', fontSize: '14px', color: '#263d32', backgroundColor: '#f3edd8', padding: { x: 4, y: 2 } }).setOrigin(0.5, 0);
-    const bubble = this.add.text(0, -77, '', { fontFamily: 'monospace', fontSize: '16px', color: '#263d32', backgroundColor: '#fff9e9', padding: { x: 10, y: 8 }, wordWrap: { width: 210 }, align: 'center' }).setOrigin(0.5, 1).setVisible(false);
-    const container = this.add.container(player.x, player.y, [shadow, sprite, label, bubble]);
-    const visual = { container, shadow, sprite, label, bubble, x: player.x, y: player.y, signature: '' };
+    const shadow = this.add.ellipse(0, 1, this.preview ? 67 : 39, 12, 0x080d24, 0.5);
+    const sprite = this.add.image(0, 0, this.texture(player)).setOrigin(0.5, 1).setScale(this.preview ? 3 : 2);
+    const bubble = this.add.text(0, -108, '', { fontFamily: 'monospace', fontSize: '16px', color: '#111831', backgroundColor: '#f1f5ff', padding: { x: 10, y: 8 }, wordWrap: { width: 210 }, align: 'center' }).setOrigin(0.5, 1).setVisible(false);
+    const container = this.add.container(player.x, player.y, [shadow, sprite, bubble]);
+    const visual = { container, shadow, sprite, bubble, x: player.x, y: player.y, signature: '' };
     this.visuals.set(player.id, visual); return visual;
   }
   update(_time: number, delta: number) {
     const state = this.session.snapshot;
+    const question = state.question?.text || '';
+    if (question !== this.questionKey) {
+      this.questionKey = question; drawArcadeQuestion(this.questionTexture.getContext(), question); this.questionTexture.refresh();
+    }
     const key = JSON.stringify([state.zones, state.phase, state.result]);
     if (key !== this.zoneKey) {
       this.zoneKey = key; this.floor.clear();
       this.zoneObjects.forEach(o => o.destroy()); this.zoneObjects = [];
       for (const zone of state.zones) {
         const color = Phaser.Display.Color.HexStringToColor(zone.color).color;
-        this.floor.fillStyle(color, 0.62).fillRect(zone.x, zone.y, zone.width, zone.height);
-        this.floor.lineStyle(3, color, 0.9).strokeRect(zone.x, zone.y, zone.width, zone.height);
+        this.floor.fillStyle(color, 0.12).fillRect(zone.x, zone.y, zone.width, zone.height);
+        this.floor.lineStyle(4, color, 0.95).strokeRect(zone.x, zone.y, zone.width, zone.height);
+        for (const x of [zone.x, zone.x + zone.width - 22]) for (const y of [zone.y, zone.y + zone.height - 4]) this.floor.fillStyle(color).fillRect(x, y, 22, 4);
         const count = state.result?.counts.find(c => c.id === zone.id)?.count;
-        const text = this.add.text(zone.x + zone.width / 2, zone.y + 18, `${zone.label}${count === undefined ? '' : ` · ${count}`}`, { fontFamily: 'monospace', fontSize: '20px', color: '#24382e', fontStyle: 'bold', align: 'center', wordWrap: { width: zone.width - 20 } }).setOrigin(0.5, 0).setDepth(1);
+        const text = this.add.text(zone.x + zone.width / 2, zone.y + 27, `${zone.label.toUpperCase()}${count === undefined ? '' : ` · ${count}`}`, { fontFamily: 'monospace', fontSize: this.preview ? '32px' : '26px', color: '#f1f5ff', fontStyle: 'bold', align: 'center', stroke: '#101731', strokeThickness: 4, wordWrap: { width: zone.width - 24 } }).setOrigin(0.5, 0).setDepth(1);
         this.zoneObjects.push(text);
       }
     }
@@ -78,12 +77,13 @@ class ArenaScene extends Phaser.Scene {
       v.container.setPosition(Math.round(v.x), Math.round(v.y)).setDepth(10 + v.y);
       const jumpT = (now - player.jumpAt) / 620;
       const jump = jumpT > 0 && jumpT < 1 ? Math.sin(jumpT * Math.PI) * 38 : 0;
-      const walk = Math.hypot(player.vx, player.vy) > 15 ? Math.sin(now / 75) * 2 : 0;
+      const moving = Math.hypot(player.vx, player.vy) > 15;
+      const step = moving ? [0, 1, 0, 2][Math.floor(now / 135) % 4] : 0;
+      const walk = moving ? Math.sin(now / 85) * 1.5 : 0;
       v.sprite.setY(-jump - Math.abs(walk));
-      v.sprite.setFlipX(player.facing === 'left');
       v.shadow.setScale(1 - jump / 100);
-      const signature = `${player.color}:${player.hair}:${player.accessory}`;
-      if (v.signature !== signature) { v.sprite.setTexture(this.texture(player)); v.signature = signature; }
+      const signature = `${player.color}:${player.hair}:${player.accessory}:${player.facing}:${step}`;
+      if (v.signature !== signature) { v.sprite.setTexture(this.texture(player, step)); v.signature = signature; }
       const showBubble = state.chatEnabled && player.messageUntil > now && !!player.message;
       v.bubble.setVisible(showBubble);
       if (showBubble) v.bubble.setText(player.message);
@@ -92,17 +92,17 @@ class ArenaScene extends Phaser.Scene {
   }
 }
 
-export function Arena({ session, onFps }: { session: Session; onFps: (fps: number) => void }) {
+export function Arena({ session, onFps, preview = false }: { session: ArenaSource; onFps: (fps: number) => void; preview?: boolean }) {
   const element = useRef<HTMLDivElement>(null);
   const report = useRef(onFps); report.current = onFps;
   useEffect(() => {
     const game = new Phaser.Game({ type: Phaser.AUTO, parent: element.current!, width: WORLD.width, height: WORLD.height,
       pixelArt: true, roundPixels: true, antialias: false,
       scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-      scene: new ArenaScene(session, fps => report.current(fps)),
+      scene: new ArenaScene(session, fps => report.current(fps), preview),
       banner: false, audio: { noAudio: true },
     });
     return () => game.destroy(true);
-  }, [session]);
+  }, [session, preview]);
   return <div className="arena" ref={element} aria-label="Live multiplayer arena" />;
 }
