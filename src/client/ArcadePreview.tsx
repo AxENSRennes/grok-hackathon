@@ -10,6 +10,7 @@ function actor(id: string, x: number, color: number, hair: number): PlayerView {
 
 // A separate art preview: two local actors, no host access or fake live players.
 export function ArcadePreview() {
+  const bubbleExample = new URLSearchParams(location.search).has('bubbles');
   const source = useRef<ArenaSource>({ offset: 0, snapshot: {
     players: [actor('cyan', 355, 0, 0), actor('pink', 925, 1, 2)],
     phase: 'question', question, zones: makeZones(question), result: null,
@@ -22,6 +23,17 @@ export function ArcadePreview() {
     const player = source.current.snapshot.players[0];
     const keys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '];
     const down = (event: KeyboardEvent) => {
+      if (bubbleExample && event.key.toLowerCase() === 'b') {
+        event.preventDefault();
+        if (!event.repeat) {
+          const until = Date.now() + 4000;
+          source.current.snapshot.players.forEach((actor, index) => {
+            actor.message = index === 0 ? 'Anyone up for a coffee?' : "I'm in!";
+            actor.messageUntil = until;
+          });
+        }
+        return;
+      }
       if (!keys.includes(event.key)) return;
       event.preventDefault(); held.add(event.key);
       if (event.key === ' ' && !event.repeat) player.jumpAt = Date.now();
@@ -45,9 +57,10 @@ export function ArcadePreview() {
     frame = requestAnimationFrame(tick);
     window.addEventListener('keydown', down); window.addEventListener('keyup', up); window.addEventListener('blur', clear);
     return () => { cancelAnimationFrame(frame); window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); window.removeEventListener('blur', clear); };
-  }, []);
+  }, [bubbleExample]);
   return <StageDisplay url={playUrl} initiallyStarted={!new URLSearchParams(location.search).has('welcome')}>
-    <Arena session={source.current} onFps={() => {}} preview />
+    <Arena session={source.current} onFps={() => {}} preview={!bubbleExample} />
     <h1 className="sr-only">{question.text}</h1>
+    {bubbleExample && <p className="sr-only">Local speech bubble example. Press B to display sample messages for four seconds, using the live game renderer and character scale.</p>}
   </StageDisplay>;
 }

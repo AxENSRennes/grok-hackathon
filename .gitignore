@@ -9,6 +9,7 @@ playwright-report/
 test-results/
 data/
 *.log
+__pycache__/
 # Local account screenshots and deployment/operator notes.
 /supabase-*.png
 /cognee-*.png

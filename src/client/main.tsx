@@ -78,7 +78,7 @@ function Controller({ session: initial }: { session: Session }) {
   useEffect(() => {
     if (disabled) { held.current.clear(); setPressed(new Set()); session.input(0, 0); }
   }, [disabled, session]);
-  return <RemoteControl name={player?.name || 'Joueur'} appearance={player || initialAppearance} roomId={session.room.roomId} status={session.status === 'connected' ? 'connected' : session.status === 'closed' ? 'disconnected' : 'reconnecting'} disabled={disabled} chatEnabled={session.snapshot.chatEnabled} pressed={pressed} notice={session.notice} onDirection={press} onJump={() => session.jump()} onSend={text => session.chat(text)} />;
+  return <RemoteControl name={player?.name || 'Player'} appearance={player || initialAppearance} roomId={session.room.roomId} status={session.status === 'connected' ? 'connected' : session.status === 'closed' ? 'disconnected' : 'reconnecting'} disabled={disabled} chatEnabled={session.snapshot.chatEnabled} pressed={pressed} notice={session.notice} onDirection={press} onJump={() => session.jump()} onSend={text => session.chat(text)} />;
 }
 function StageAccess() {
   const [host, setHost] = useState<boolean | null>(null);
