@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { COLORS, type Appearance } from '../shared/protocol';
-import { AVATAR_SIZE, drawAvatar } from './avatars';
 import { pixelText } from './arcadeArt';
+import { AVATAR_SIZE, drawAvatar } from './avatars';
 import './remote-control.css';
 
 export type Direction = 'up' | 'down' | 'left' | 'right';
@@ -30,44 +30,29 @@ function PixelWord({ text, color = '#f1f5ff' }: { text: string; color?: string }
   return <canvas ref={ref} width={width} height={14} aria-hidden="true" />;
 }
 
-function Character({ appearance, facing, moving }: { appearance: Appearance; facing: Direction; moving: boolean }) {
-  const ref = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    const ctx = ref.current?.getContext('2d');
-    if (!ctx) return;
-    let frame = 0;
-    const tick = (time: number) => {
-      const cycle = [0, 1, 0, 2][Math.floor(time / 125) % 4];
-      drawAvatar(ctx, appearance, { facing, step: moving ? cycle : 0 });
-      if (moving) frame = requestAnimationFrame(tick);
-    };
-    tick(performance.now());
-    return () => cancelAnimationFrame(frame);
-  }, [appearance.color, appearance.hair, appearance.accessory, facing, moving]);
-  return <canvas ref={ref} width={AVATAR_SIZE} height={AVATAR_SIZE} aria-hidden="true" />;
-}
-
 function Arrow() {
   return <svg viewBox="0 0 16 17" aria-hidden="true" shapeRendering="crispEdges"><path d="M7 1h2v2h2v2h2v2h2v2h-5v7H6V9H1V7h2V5h2V3h2z" fill="currentColor" /></svg>;
+}
+
+function RemoteAvatar({ appearance }: { appearance: Appearance }) {
+  const canvas = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const ctx = canvas.current?.getContext('2d');
+    if (ctx) drawAvatar(ctx, appearance);
+  }, [appearance.color, appearance.hair, appearance.accessory, appearance.accessory2]);
+  return <canvas ref={canvas} width={AVATAR_SIZE} height={AVATAR_SIZE} aria-hidden="true" />;
 }
 
 export function RemoteControl({ name, appearance, roomId, status, disabled = false, chatEnabled = true, pressed, notice, onDirection, onJump, onSend }: RemoteControlProps) {
   const [text, setText] = useState('');
   const [sent, setSent] = useState(false);
-  const [jumping, setJumping] = useState(false);
-  const [facing, setFacing] = useState<Direction>('down');
-  const jumpTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [jumpCount, setJumpCount] = useState(0);
   const sentTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => { if (jumpTimer.current) clearTimeout(jumpTimer.current); if (sentTimer.current) clearTimeout(sentTimer.current); }, []);
-  useEffect(() => {
-    const direction = Array.from(pressed).at(-1);
-    if (direction) setFacing(direction);
-  }, [pressed]);
+  useEffect(() => () => { if (sentTimer.current) clearTimeout(sentTimer.current); }, []);
   const jump = () => {
     if (disabled) return;
-    onJump(); setJumping(true);
-    if (jumpTimer.current) clearTimeout(jumpTimer.current);
-    jumpTimer.current = setTimeout(() => setJumping(false), 620);
+    setJumpCount(count => count + 1);
+    onJump();
   };
   const labels: Record<Direction, string> = { up: 'Move up', left: 'Move left', right: 'Move right', down: 'Move down' };
   const connectionLabels: Record<ConnectionState, string> = { connected: 'Connected', reconnecting: 'Reconnecting…', disconnected: 'Disconnected', preview: 'Local preview' };
@@ -88,10 +73,8 @@ export function RemoteControl({ name, appearance, roomId, status, disabled = fal
         <span className="remote-screw top-left" aria-hidden="true" /><span className="remote-screw top-right" aria-hidden="true" />
         <div className="remote-pad" role="group" aria-label="Directional pad">
           {arrow('up')}{arrow('left')}
-          <button className={`remote-jump ${jumping ? 'is-jumping' : ''}`} type="button" aria-label="Jump" disabled={disabled} onPointerDown={event => { event.preventDefault(); jump(); }} onClick={event => { if (event.detail === 0) jump(); }}>
-            <span className="remote-jump-character"><Character appearance={appearance} facing={facing} moving={pressed.size > 0} /></span>
-            <span className="remote-character-shadow" aria-hidden="true" />
-            <PixelWord text="JUMP" color="#0b102e" />
+          <button className="remote-jump" type="button" aria-label="Jump" disabled={disabled} onPointerDown={event => { event.preventDefault(); jump(); }} onClick={event => { if (event.detail === 0) jump(); }}>
+            <span key={jumpCount} className={`remote-avatar${jumpCount ? ' is-jumping' : ''}`}><RemoteAvatar appearance={appearance} /></span>
           </button>
           {arrow('right')}{arrow('down')}
         </div>
