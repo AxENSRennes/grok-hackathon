@@ -36,14 +36,22 @@ export async function loadQuestionDeck(source: QuestionSource = localQuestionSou
 }
 
 export class QuestionSequence {
-  private index = 0;
+  private index = -1;
 
   constructor(private readonly deck: QuestionDeck) {}
 
+  get hasPrevious() { return this.index > 0; }
+  get hasNext() { return this.index < this.deck.questions.length - 1; }
+
   next() {
-    const entry = this.deck.questions[this.index];
-    if (!entry) throw new Error('The final question has already been played.');
+    if (!this.hasNext) throw new Error('The final question has already been played.');
     this.index++;
-    return structuredClone(entry);
+    return structuredClone(this.deck.questions[this.index]);
+  }
+
+  previous() {
+    if (!this.hasPrevious) throw new Error('There is no previous question.');
+    this.index--;
+    return structuredClone(this.deck.questions[this.index]);
   }
 }

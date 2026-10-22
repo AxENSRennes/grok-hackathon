@@ -4,7 +4,7 @@ import type { PartyState } from '../server/state';
 import { ensureGuestSession } from './auth';
 
 const endpoint = () => `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}${import.meta.env.DEV ? '/socket' : ''}`;
-export const emptySnapshot: Snapshot = { players: [], phase: 'lobby', question: null, zones: [], result: null, endsAt: 0, serverTime: Date.now(), paused: false, chatEnabled: true };
+export const emptySnapshot: Snapshot = { players: [], phase: 'lobby', question: null, zones: [], result: null, endsAt: 0, serverTime: Date.now(), paused: false, chatEnabled: true, hasPreviousQuestion: false, hasNextQuestion: true };
 export function randomToken() { return Array.from(crypto.getRandomValues(new Uint8Array(24)), n => n.toString(16).padStart(2, '0')).join(''); }
 export function guestToken(roomId: string) {
   const key = `sidequest:guest:${roomId}`;
@@ -33,6 +33,7 @@ export class Session {
     this.pingTimer = setInterval(() => { if (this.status === 'connected') this.room.send('ping', performance.now()); }, 1000);
   }
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
+  get isHost() { return this.options.role === 'host'; }
   private emit() { this.listeners.forEach(listener => listener()); }
   private bind(room: Room<PartyState>) {
     // Rejoin with our stable guest token; do not replay old movement packets.
@@ -43,6 +44,7 @@ export class Session {
         phase: state.phase as Snapshot['phase'], question: state.questionJson ? JSON.parse(state.questionJson) : null,
         zones: JSON.parse(state.zonesJson || '[]'), result: state.resultJson ? JSON.parse(state.resultJson) : null,
         endsAt: state.endsAt, serverTime: state.serverTime, paused: state.paused, chatEnabled: state.chatEnabled,
+        hasPreviousQuestion: state.hasPreviousQuestion, hasNextQuestion: state.hasNextQuestion,
       };
       this.emit();
     });

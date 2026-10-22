@@ -17,7 +17,7 @@ npm run dev
 
 Configure `HOST_EMAILS` in `.env` and provision an organizer account with `npm run auth:create-host` (supply a password of at least 12 characters through stdin). Production requires `BETTER_AUTH_SECRET`, `HOST_EMAILS`, and an HTTPS `PUBLIC_URL`. Organizer registration is closed to the public.
 
-Open **http://localhost:5173/** and sign in as an organizer: the room and its QR code are created automatically. The shared screen shows only the game and QR code. Phones on the same network can join through the QR code (the local address is detected automatically). If the Wi-Fi isolates clients, use public HTTPS hosting.
+Open **http://localhost:5173/** and sign in as an organizer: the room and its QR code are created automatically. After Play, use the projector computer's left/right arrow keys to move between questions, or click the small Previous/Next buttons. Next starts the first question from the lobby. Navigating saves an active round's answers and starts the selected question with a fresh timer. Controls are available only in the organizer's room tab; public screens stay read-only. Phones on the same network can join through the QR code (the local address is detected automatically). If the Wi-Fi isolates clients, use public HTTPS hosting.
 
 - `/?room=CODE`: game and QR code; without a code, a new room is created automatically.
 - `/host` and `/screen?room=CODE`: compatible legacy links to the same minimal screen.
@@ -96,9 +96,9 @@ Cookie: <Better Auth organizer session>
 {"action":"start","question":{"text":"Which workshop?","mode":"choice","labels":["Agents","Robotics"],"duration":30}}
 ```
 
-Actions: `next`, `start`, `finish`, `lobby`, `pause` (`paused`), and `chat` (`enabled`). Never expose the organizer key or cookie to players or in a URL. Schemas and types are in `src/shared/protocol.ts`. The protected export is `GET /api/rooms/:roomId/results`, using the same session and header. A future Grok adapter must use an authorized server boundary.
+Actions: `next`, `previous`, `start`, `finish`, `lobby`, `pause` (`paused`), and `chat` (`enabled`). Never expose the organizer key or cookie to players or in a URL. Schemas and types are in `src/shared/protocol.ts`. The protected export is `GET /api/rooms/:roomId/results`, using the same session and header. A future Grok adapter must use an authorized server boundary.
 
-The six selected questions are in `src/server/questions/hackathon.en.json`, in gameplay order, with a provisional duration of 30 seconds each. Sending `{"action":"next"}` to the command endpoint starts the next question after results (or from the lobby). An active round must finish first. The final question is explicitly marked `closing`, and the sequence then stops; `lobby` does not reset the counter. A new room restarts the selection. `start` commands with custom questions remain available.
+The six selected questions are in `src/server/questions/hackathon.en.json`, in gameplay order, with a provisional duration of 30 seconds each. Sending `{"action":"next"}` or `{"action":"previous"}` to the command endpoint navigates the selection, finishing and saving an active round before starting the selected question. The first and final questions are navigation boundaries; attempts to move past them leave the current round unchanged. The final question is explicitly marked `closing`; navigating back remains available. `lobby` keeps the current selection position. A new room restarts the selection. `start` commands with custom questions remain available and require any active round to finish first.
 
 `GET /api/rooms/:roomId/questions` returns the room's selection with the same protections as commands. `QuestionSource.load()` in `src/server/questions/index.ts` is the boundary to replace with a Supabase or Grok adapter: its output is validated, then fixed when each room is created. No external access occurs in the physics loop. No configuration panel is added.
 

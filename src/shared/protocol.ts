@@ -28,6 +28,7 @@ export const questionSchema = z.object({
 export const commandSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('start'), question: questionSchema }),
   z.object({ action: z.literal('next') }),
+  z.object({ action: z.literal('previous') }),
   z.object({ action: z.literal('finish') }),
   z.object({ action: z.literal('lobby') }),
   z.object({ action: z.literal('chat'), enabled: z.boolean() }),
@@ -52,6 +53,7 @@ export interface Snapshot {
   players: PlayerView[]; phase: 'lobby' | 'question' | 'results';
   question: Question | null; zones: Zone[]; result: RoundResult | null;
   endsAt: number; serverTime: number; paused: boolean; chatEnabled: boolean;
+  hasPreviousQuestion: boolean; hasNextQuestion: boolean;
 }
 
 export function makeZones(question: Question): Zone[] {

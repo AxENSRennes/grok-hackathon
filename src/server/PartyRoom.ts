@@ -148,9 +148,13 @@ export class PartyRoom extends Room<{ state: PartyState }> {
   command(command: HostCommand) {
     const now = Date.now();
     switch (command.action) {
-      case 'next': {
-        if (this.state.phase === 'question') throw new Error('Finish the current round before starting another.');
-        this.command({ action: 'start', question: this.questions.next().question });
+      case 'next':
+      case 'previous': {
+        const entry = command.action === 'next' ? this.questions.next() : this.questions.previous();
+        this.finish();
+        this.command({ action: 'start', question: entry.question });
+        this.state.hasPreviousQuestion = this.questions.hasPrevious;
+        this.state.hasNextQuestion = this.questions.hasNext;
         break;
       }
       case 'start': {

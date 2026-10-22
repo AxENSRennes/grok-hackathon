@@ -13,6 +13,7 @@ This brief records the user's choices, not a new design proposal.
 - Phone: a remote only. Upper half has four directional controls around a central jump button; lower half has the text-entry area. No map on the phone.
 - Interaction: jumps without an overhead locator arrow; balanced pushing; short-lived speech bubbles. Bubbles may be removed if they interfere with question responses.
 - Questions: answers occupy spatial zones. Final position counts. The map/zones can change; their final presentation is still open.
+- Question navigation: the projector computer uses left/right arrow keys for previous/next questions, with small matching buttons on the organizer's game screen. Keep the QR welcome screen free of these controls.
 - Host: a pixelated Grok presenter. The split between Grok and organizer controls is still undecided.
 - Identity and motion: repeated pixel edges and compact characters provide identity; movement, jumps, and collisions provide the visual energy. Interface decoration and text stay sparse.
 

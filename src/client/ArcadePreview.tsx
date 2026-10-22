@@ -14,6 +14,7 @@ export function ArcadePreview() {
     players: [actor('cyan', 355, 0, 0), actor('pink', 925, 1, 2)],
     phase: 'question', question, zones: makeZones(question), result: null,
     endsAt: 0, serverTime: Date.now(), paused: false, chatEnabled: true,
+    hasPreviousQuestion: false, hasNextQuestion: false,
   } });
   const playUrl = `${location.origin}/play`;
   useEffect(() => {

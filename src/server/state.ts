@@ -17,4 +17,5 @@ export class PartyState extends schema({
   zonesJson: t.string().default('[]'), resultJson: t.string().default(''),
   endsAt: t.float64().default(0), serverTime: t.float64().default(() => Date.now()),
   paused: t.boolean().default(false), chatEnabled: t.boolean().default(true),
+  hasPreviousQuestion: t.boolean().default(false), hasNextQuestion: t.boolean().default(true),
 }, 'PartyState') {}

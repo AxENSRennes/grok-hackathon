@@ -8,4 +8,10 @@
 .stage-play{min-width:180px;min-height:58px;font-size:24px;border-width:3px;box-shadow:5px 5px 0 #05091c}
 .stage-qr-link{display:grid;justify-items:center;gap:4px;text-decoration:none;color:#0a102b}
 .stage-display:focus{outline:none}
+/* Small arcade buttons at the edge keep the question and playable floor in focus. */
+.stage-question-navigation{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);display:flex;gap:10px}
+.stage-question-navigation button{min-width:48px;min-height:44px;border:2px solid #f1f5ff;background:#0a102b;color:#f1f5ff;box-shadow:3px 3px 0 #05091c}
+.stage-question-navigation button:last-child{background:#16bfff;color:#0a102b;border-color:#16bfff}
+.stage-question-navigation button:focus-visible{outline:3px solid #ffe15a;outline-offset:4px}
+@media(max-width:620px){.stage-question-navigation{bottom:8px;gap:8px}}
 @media(max-height:520px){.stage-welcome{padding:12px}.stage-welcome-content{gap:16px}.stage-welcome-qr{gap:8px}.stage-welcome-qr img,.stage-welcome-qr [role=status]{width:min(56dvh,60vw)}.stage-play{min-height:48px;font-size:20px}}

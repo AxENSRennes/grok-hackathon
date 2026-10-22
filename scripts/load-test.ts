@@ -110,6 +110,47 @@ try {
   assert.deepEqual([...screen.state.players.values()].map(p => [p.x, p.y]), frozen);
   const exported = await fetch(`${httpEndpoint}/api/rooms/${host.roomId}/results`, { headers: { Cookie: hostCookie, 'x-host-key': hostKey } });
   assert.equal(exported.status, 200); assert.equal((await exported.json()).length, 1);
+  // Navigating an active round saves its final spatial vote and resets the timer.
+  const deckResponse = await fetch(`${httpEndpoint}/api/rooms/${host.roomId}/questions`, { headers: { Cookie: hostCookie, 'x-host-key': hostKey } });
+  assert.equal(deckResponse.status, 200);
+  const deck = await deckResponse.json() as { questions: { question: typeof question }[] };
+  screen.send('command', { action: 'next' });
+  players[1].send('command', { action: 'next' });
+  await wait(100); assert.equal(screen.state.phase, 'results');
+  host.send('command', { action: 'next' });
+  await until(() => screen.state.questionJson === JSON.stringify(deck.questions[0].question), 'First question did not synchronize.');
+  assert.equal(screen.state.hasPreviousQuestion, false);
+  assert.equal(screen.state.hasNextQuestion, true);
+  const firstDeadline = screen.state.endsAt;
+  host.send('command', { action: 'previous' });
+  await wait(100);
+  assert.equal(screen.state.endsAt, firstDeadline, 'A boundary command must not restart or finish the round.');
+  host.send('command', { action: 'next' });
+  await until(() => screen.state.questionJson === JSON.stringify(deck.questions[1].question), 'Next did not save and replace the active question.');
+  assert.equal(screen.state.hasPreviousQuestion, true);
+  host.send('command', { action: 'pause', paused: true });
+  await until(() => screen.state.paused, 'Pause did not synchronize.');
+  host.send('command', { action: 'previous' });
+  await until(() => screen.state.questionJson === JSON.stringify(deck.questions[0].question), 'Previous did not restore the first question.');
+  assert.equal(screen.state.paused, false);
+  assert(screen.state.endsAt > firstDeadline, 'Returning to a question must start a fresh timer.');
+  assert.equal(screen.state.resultJson, '');
+  for (const entry of deck.questions.slice(1)) {
+    host.send('command', { action: 'next' });
+    await until(() => screen.state.questionJson === JSON.stringify(entry.question), 'Deck order changed after navigating back.');
+  }
+  assert.equal(screen.state.hasNextQuestion, false);
+  const finalDeadline = screen.state.endsAt;
+  host.send('command', { action: 'next' });
+  await wait(100); assert.equal(screen.state.endsAt, finalDeadline);
+  host.send('command', { action: 'finish' });
+  await until(() => screen.state.phase === 'results', 'Final question did not finish.');
+  const navigationResults = await (await fetch(`${httpEndpoint}/api/rooms/${host.roomId}/results`, { headers: { Cookie: hostCookie, 'x-host-key': hostKey } })).json();
+  assert.equal(navigationResults.length, deck.questions.length + 3, 'Navigation must save each completed attempt once.');
+  for (const saved of navigationResults) {
+    assert.equal(saved.participants, count);
+    assert.equal(saved.counts.reduce((sum: number, zone: { count: number }) => sum + zone.count, 0) + saved.outside, count);
+  }
   const logout = await fetch(`${httpEndpoint}/api/auth/sign-out`, { method: 'POST', headers: { ...headers, Cookie: hostCookie, 'content-type': 'application/json' }, body: '{}' });
   assert.equal(logout.status, 200);
   host.send('command', { action: 'lobby' });
@@ -117,7 +158,7 @@ try {
   const revoked = await fetch(`${httpEndpoint}/api/rooms/${host.roomId}/results`, { headers: { Cookie: hostCookie, 'x-host-key': hostKey } });
   assert.equal(revoked.status, 403);
   const percentile = (values: number[], pct: number) => [...values].sort((a, b) => a - b)[Math.min(values.length - 1, Math.floor(values.length * pct))];
-  console.log(JSON.stringify({ players: count, durationMs: duration, samples: rtts.length, rttMedianMs: Math.round(percentile(rtts, 0.5)), rttP95Ms: Math.round(percentile(rtts, 0.95)), patchMedianMs: Math.round(percentile(patches, 0.5)), patchP95Ms: Math.round(percentile(patches, 0.95)), checks: ['anonymous sessions', 'closed registration', 'unauthorized creation allocates no room', 'movement and bounds', 'cookie-based reconnect identity', 'host authorization', 'spectator restrictions', 'vote totals', 'frozen results', 'result export', 'host sign-out revokes live commands'] }, null, 2));
+  console.log(JSON.stringify({ players: count, durationMs: duration, samples: rtts.length, rttMedianMs: Math.round(percentile(rtts, 0.5)), rttP95Ms: Math.round(percentile(rtts, 0.95)), patchMedianMs: Math.round(percentile(patches, 0.5)), patchP95Ms: Math.round(percentile(patches, 0.95)), checks: ['anonymous sessions', 'closed registration', 'unauthorized creation allocates no room', 'movement and bounds', 'cookie-based reconnect identity', 'host authorization', 'spectator restrictions', 'vote totals', 'frozen results', 'result export', 'question navigation and boundaries', 'navigation preserves vote totals', 'host sign-out revokes live commands'] }, null, 2));
 } catch (error) {
   console.error(error);
   process.exitCode = 1;

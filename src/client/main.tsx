@@ -9,6 +9,7 @@ import './arcade.css';
 import { authClient } from './auth';
 import { RemoteControl, ControllerPreview, type Direction } from './RemoteControl';
 import { StageDisplay } from './StageDisplay';
+import { QuestionNavigation } from './QuestionNavigation';
 
 const Arena = lazy(() => import('./Arena').then(module => ({ default: module.Arena })));
 const ArcadePreview = lazy(() => import('./ArcadePreview').then(module => ({ default: module.ArcadePreview })));
@@ -154,6 +155,7 @@ function Stage({ canHost }: { canHost: boolean }) {
     <Suspense fallback={null}><Arena session={session} onFps={() => {}} /></Suspense>
     {session.snapshot.question && <h1 className="sr-only">{session.snapshot.question.text}</h1>}
     {session.snapshot.paused && <div className="pause-overlay">Ⅱ</div>}
+    {session.isHost && <QuestionNavigation session={session} />}
   </StageDisplay>;
 }
 createRoot(document.getElementById('root')!).render(location.pathname === '/controller-preview' ? <ControllerPreview /> : location.pathname === '/preview'

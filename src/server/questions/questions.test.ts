@@ -31,4 +31,21 @@ describe('question sources and session order', () => {
       return { ...deck, questions: [deck.questions.at(-1)!, deck.questions[0]] };
     } })).rejects.toThrow();
   });
+
+  it('retraces the deck without skipping questions or moving past either boundary', async () => {
+    const deck = await loadQuestionDeck();
+    const sequence = new QuestionSequence(deck);
+    expect(sequence.hasPrevious).toBe(false);
+    expect(() => sequence.previous()).toThrow('no previous');
+    expect(sequence.next()).toEqual(deck.questions[0]);
+    expect(() => sequence.previous()).toThrow('no previous');
+    expect(sequence.next()).toEqual(deck.questions[1]);
+    expect(sequence.previous()).toEqual(deck.questions[0]);
+    for (const entry of deck.questions.slice(1)) expect(sequence.next()).toEqual(entry);
+    expect(sequence.hasNext).toBe(false);
+    expect(() => sequence.next()).toThrow('final question');
+    expect(sequence.previous()).toEqual(deck.questions.at(-2));
+    expect(sequence.hasNext).toBe(true);
+    expect(sequence.next()).toEqual(deck.questions.at(-1));
+  });
 });
