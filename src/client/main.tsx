@@ -55,6 +55,7 @@ function Controller({ session: initial }: { session: Session }) {
   const player = session.snapshot.players.find(p => p.id === session.playerId);
   const send = () => session.input(Number(held.current.has('right')) - Number(held.current.has('left')), Number(held.current.has('down')) - Number(held.current.has('up')));
   const press = (direction: Direction, down: boolean) => {
+    if (held.current.has(direction) === down) return;
     if (down) held.current.add(direction); else held.current.delete(direction);
     setPressed(new Set(held.current)); send();
   };

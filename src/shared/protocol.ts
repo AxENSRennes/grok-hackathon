@@ -15,6 +15,7 @@ export const inputSchema = z.object({
   x: z.number().finite().min(-1).max(1), y: z.number().finite().min(-1).max(1),
   seq: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
   probe: z.boolean().optional(),
+  lease: z.string().regex(/^[a-f0-9]{24}$/).optional(),
 });
 export const appearanceSchema = z.object({
   color: z.number().int().min(0).max(COLORS.length - 1),

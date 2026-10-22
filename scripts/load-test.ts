@@ -21,6 +21,7 @@ async function signIn(path: string, body: Record<string, unknown>) {
   return cookies.map(cookie => cookie.split(';')[0]).join('; ');
 }
 const connections: Room<PartyState>[] = [];
+const leases = new Map<Room<PartyState>, string>();
 const key = () => randomBytes(24).toString('hex');
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 async function until(check: () => boolean, message: string, timeout = 8000) {
@@ -31,9 +32,11 @@ function listen(room: Room<PartyState>) {
   room.reconnection.enabled = false;
   room.onMessage('identity', () => {});
   room.onMessage('notice', () => {});
+  room.onMessage('pong', (data: { lease?: { token: string } }) => { if (data.lease) leases.set(room, data.lease.token); });
   connections.push(room); return room;
 }
 let movementTimer: ReturnType<typeof setInterval> | undefined;
+let leaseTimer: ReturnType<typeof setInterval> | undefined;
 try {
   assert(process.env.TEST_HOST_EMAIL && process.env.TEST_HOST_PASSWORD, 'Set TEST_HOST_EMAIL and TEST_HOST_PASSWORD for a provisioned organizer.');
   const hostKey = key();
@@ -50,11 +53,14 @@ try {
   const screen = listen(await makeClient().joinById<PartyState>(host.roomId, { role: 'screen' }));
   const tokens = Array.from({ length: count }, key);
   const cookies = await Promise.all(tokens.map(() => signIn('sign-in/anonymous', {})));
-  const playerOptions = (i: number) => ({ role: 'player', token: tokens[i], name: `Test ${i + 1}`, color: i % 8, hair: i % 4, accessory: 'none' });
+  const playerOptions = (i: number) => ({ role: 'player', inputProtocol: 1, token: tokens[i], name: `Test ${i + 1}`, color: i % 8, hair: i % 4, accessory: 'none' });
   await assert.rejects(() => makeClient().joinById(host.roomId, playerOptions(0)));
   await assert.rejects(() => makeClient(guestCookie).joinById(host.roomId, { role: 'host', hostKey }));
   await assert.rejects(() => makeClient(hostCookie).joinById(host.roomId, { role: 'host', hostKey: key() }));
   const players = await Promise.all(tokens.map(async (_token, i) => listen(await makeClient(cookies[i]).joinById<PartyState>(host.roomId, playerOptions(i)))));
+  const renew = () => players.filter(p => p.connection.isOpen).forEach(p => p.send('ping', performance.now()));
+  leaseTimer = setInterval(renew, 500); renew();
+  await until(() => players.every(p => leases.has(p)), 'Movement leases did not arrive.');
   await until(() => screen.state?.players?.size === count, 'All players did not synchronize.');
   console.log(`Room ${host.roomId}: ${count} controllers + host + screen connected.`);
   const denied = await fetch(`${httpEndpoint}/api/rooms/${host.roomId}/commands`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-host-key': 'not-the-secret' }, body: JSON.stringify({ action: 'finish' }) });
@@ -70,7 +76,7 @@ try {
   let seq = 0;
   movementTimer = setInterval(() => {
     seq++;
-    players.forEach((player, i) => { player.send('input', { x: Math.sin(seq / 8 + i), y: Math.cos(seq / 8 + i), seq }); if (seq % 10 === 0) player.send('jump'); });
+    players.forEach((player, i) => { player.send('input', { x: Math.sin(seq / 8 + i), y: Math.cos(seq / 8 + i), seq, lease: leases.get(player) }); if (seq % 10 === 0) player.send('jump'); });
     screen.send('ping', performance.now());
   }, 150);
   await wait(duration);
@@ -164,5 +170,6 @@ try {
   process.exitCode = 1;
 } finally {
   clearInterval(movementTimer);
+  clearInterval(leaseTimer);
   await Promise.race([Promise.allSettled(connections.map(room => room.leave())), wait(2000)]);
 }

@@ -2,6 +2,8 @@
 
 The server writes Pino JSON to stdout. The existing systemd service collects it in journald; no collector or dashboard is required. The VPS currently caps the shared persistent journal at 512 MiB and its runtime journal at 128 MiB. Those limits cover all services, not only this game.
 
+Each JSON record also includes a UUID `id` and `schemaVersion: 1`. A future external sink can be selected in `src/server/storage/index.ts`; stdout remains enabled. The optional export path batches redacted records with a bounded queue, cancellation, and failure isolation. No external sink is configured by default. See [Backend storage adapters](storage.md) for contracts and delivery limits.
+
 `deploy/diagnostics.conf` is installed as `/etc/systemd/system/sidequest.service.d/diagnostics.conf`. It explicitly routes stdout/stderr to the journal and bounds log bursts to 1000 messages per 30 seconds. Normal metrics remain well below this rate. A restart applies environment changes and closes in-memory rooms; reload systemd after editing the drop-in.
 
 ```sh

@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import assert from 'node:assert/strict';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'node:net';
@@ -17,7 +18,7 @@ const env = { ...process.env, NODE_ENV: 'test', PORT: String(port), HOST: '127.0
   PUBLIC_URL: `http://127.0.0.1:${port}`, ALLOWED_ORIGINS: `http://127.0.0.1:${port}`,
   DATA_DIR: directory, HOST_EMAILS: 'host@example.test', BETTER_AUTH_SECRET: randomBytes(32).toString('hex'),
   TEST_ENDPOINT: `ws://127.0.0.1:${port}`, TEST_HOST_EMAIL: 'host@example.test', TEST_HOST_PASSWORD: password,
-  PLAYERS: '2', DURATION_MS: '400', DOTENV_CONFIG_PATH: '/dev/null',
+  PLAYERS: process.env.PLAYERS || '2', DURATION_MS: process.env.DURATION_MS || '400', DOTENV_CONFIG_PATH: '/dev/null',
 };
 let server;
 let serverLog = '';
@@ -46,7 +47,18 @@ try {
     if (Date.now() >= deadline) throw new Error(`Test server did not become ready:\n${serverLog}`);
     await delay(100);
   }
-  await run('scripts/load-test.ts');
+  await run(process.env.INTEGRATION_SCRIPT || 'scripts/load-test.ts');
+  if (!process.env.INTEGRATION_SCRIPT) {
+  const saved = (await readFile(join(directory, 'rounds.jsonl'), 'utf8')).trim().split('\n').map(line => JSON.parse(line));
+  const deck = JSON.parse(await readFile(new URL('../src/server/questions/hackathon.en.json', import.meta.url), 'utf8'));
+  assert.equal(saved.length, deck.questions.length + 3, 'Every completed attempt must reach the local storage adapter.');
+  assert.equal(new Set(saved.map(result => result.id)).size, saved.length, 'Stored attempts must not be duplicated.');
+  for (const result of saved) {
+    assert.equal(result.participants, Number(env.PLAYERS));
+    assert.equal(result.counts.reduce((sum, zone) => sum + zone.count, 0) + result.outside, Number(env.PLAYERS));
+  }
+  console.log(`Verified ${saved.length} completed attempts in the local JSONL store.`);
+  }
 } finally {
   if (server && server.exitCode === null) {
     const stopped = new Promise(resolve => server.once('close', resolve));

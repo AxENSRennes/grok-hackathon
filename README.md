@@ -102,7 +102,7 @@ The six selected questions are in `src/server/questions/hackathon.en.json`, in g
 
 `GET /api/rooms/:roomId/questions` returns the room's selection with the same protections as commands. `QuestionSource.load()` in `src/server/questions/index.ts` is the boundary to replace with a Supabase or Grok adapter: its output is validated, then fixed when each room is created. No external access occurs in the physics loop. No configuration panel is added.
 
-Cognee could enrich questions with context and previous results; Supabase could replace local round storage. These integrations remain to be connected and do not participate in the physics simulation.
+Cognee could enrich questions with context and previous results; Supabase could store round results and diagnostic events. These integrations remain to be connected and do not participate in the physics simulation. Server-only storage contracts and the adapter selection point are ready in `src/server/storage/`; see [Backend storage adapters](docs/storage.md) for wiring, payloads, and failure behavior. Local storage remains the default.
 
 ## License
 

@@ -4,7 +4,7 @@ export interface Body {
   id: string; x: number; y: number; vx: number; vy: number; online: boolean;
   facing: string;
 }
-export interface HeldInput { x: number; y: number; at: number }
+export interface HeldInput { x: number; y: number; at: number; expiresAt?: number }
 export const SPEED = 190;
 export const INPUT_TIMEOUT_MS = 450;
 const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
@@ -13,11 +13,13 @@ export function stepPhysics(players: Body[], inputs: Map<string, HeldInput>, dt:
   const active = players.filter(p => p.online);
   for (const p of active) {
     const input = inputs.get(p.id);
-    let ix = input && now - input.at <= INPUT_TIMEOUT_MS ? input.x : 0;
-    let iy = input && now - input.at <= INPUT_TIMEOUT_MS ? input.y : 0;
+    const fresh = input && now - input.at <= INPUT_TIMEOUT_MS && now < (input.expiresAt ?? Infinity);
+    let ix = fresh ? input.x : 0;
+    let iy = fresh ? input.y : 0;
     const length = Math.hypot(ix, iy);
     if (length > 1) { ix /= length; iy /= length; }
-    const blend = 1 - Math.exp(-18 * dt);
+    // Faster steering reduces reversal and stopping distance without changing top speed.
+    const blend = 1 - Math.exp(-30 * dt);
     p.vx += (ix * SPEED - p.vx) * blend;
     p.vy += (iy * SPEED - p.vy) * blend;
     if (length > 0) p.facing = Math.abs(ix) > Math.abs(iy) ? (ix < 0 ? 'left' : 'right') : (iy < 0 ? 'up' : 'down');

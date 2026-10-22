@@ -12,7 +12,7 @@ import { PartyRoom, rooms } from './PartyRoom.js';
 import { commandSchema } from '../shared/protocol.js';
 import { toNodeHandler, fromNodeHeaders } from 'better-auth/node';
 import { auth, isHost } from './auth.js';
-import { logger, startProcessDiagnostics } from './diagnostics.js';
+import { logger, startProcessDiagnostics, closeDiagnostics } from './diagnostics.js';
 
 const port = Number(process.env.PORT || 2567);
 const host = process.env.HOST || '0.0.0.0';
@@ -81,5 +81,6 @@ const game = new Server({ transport: new WebSocketTransport({
 }) });
 game.define('party', PartyRoom);
 await game.listen(port, host);
-startProcessDiagnostics(() => rooms.size);
+const stopDiagnostics = startProcessDiagnostics(() => rooms.size);
+game.onShutdown(async () => { stopDiagnostics(); await closeDiagnostics(); });
 logger.info({ event: 'server_ready', port, host }, 'Sidequest server ready');

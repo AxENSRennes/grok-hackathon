@@ -9,17 +9,19 @@ import { auth, isHost } from './auth.js';
 import { loadQuestionDeck, QuestionSequence, type QuestionDeck } from './questions/index.js';
 import { logger, RoomDiagnostics, movementTracing } from './diagnostics.js';
 import { renderProbeSchema } from '../shared/telemetry.js';
+import { InputLeases } from './input-leases.js';
+import { storage } from './storage/index.js';
 
 export const rooms = new Map<string, PartyRoom>();
 const tokenSchema = z.string().regex(/^[a-zA-Z0-9_-]{32,128}$/);
 const joinSchema = z.discriminatedUnion('role', [
   z.object({ role: z.literal('host'), hostKey: tokenSchema }),
   z.object({ role: z.literal('screen') }),
-  z.object({ role: z.literal('player'), token: tokenSchema, name: z.string().trim().min(1).max(18), ...appearanceSchema.shape }),
+  z.object({ role: z.literal('player'), token: tokenSchema, name: z.string().trim().min(1).max(18), inputProtocol: z.literal(1).optional(), ...appearanceSchema.shape }),
 ]);
 // Matchmaking serializes auth data; use a string rather than a Headers instance.
 type Joined = z.infer<typeof joinSchema> & { userId?: string; sessionCookie?: string };
-interface ClientData { role: Joined['role']; playerId?: string }
+interface ClientData { role: Joined['role']; playerId?: string; inputLeases?: InputLeases }
 type PartyClient = Client & { userData: ClientData };
 
 export class PartyRoom extends Room<{ state: PartyState }> {
@@ -51,7 +53,7 @@ export class PartyRoom extends Room<{ state: PartyState }> {
     const parsed = joinSchema.safeParse(options);
     if (!parsed.success || parsed.data.role !== 'host') throw new ServerError(400, 'Create the room from the host screen.');
     // Snapshot the source once so external edits cannot change an ongoing session.
-    this.questionDeck = await loadQuestionDeck();
+    this.questionDeck = await loadQuestionDeck(storage.questions);
     this.questions = new QuestionSequence(this.questionDeck);
     if (rooms.size >= Number(process.env.MAX_ROOMS || 5)) throw new ServerError(429, 'The maximum number of rooms has been reached.');
     this.hostKey = parsed.data.hostKey;
@@ -66,7 +68,17 @@ export class PartyRoom extends Room<{ state: PartyState }> {
       if (!player || !input.success) { this.diagnostics.inputRejected(false); return; }
       if (input.data.seq <= player.lastSeq) { this.diagnostics.inputRejected(true); return; }
       player.lastSeq = input.data.seq;
-      this.heldInputs.set(player.id, { ...input.data, at: Date.now() });
+      const leases = (client as PartyClient).userData.inputLeases;
+      const remaining = leases?.remaining(input.data.lease, performance.now());
+      // A neutral input always stops movement, even when its lease has expired.
+      if (remaining === 0 && (input.data.x !== 0 || input.data.y !== 0)) {
+        this.diagnostics.inputRejected(true, true);
+        return;
+      }
+      const receivedAt = Date.now();
+      this.heldInputs.set(player.id, { ...input.data, at: receivedAt,
+        ...(remaining !== undefined ? { expiresAt: receivedAt + remaining } : {}),
+      });
       const now = performance.now();
       if (input.data.probe && now - (this.probeAt.get(client.sessionId) ?? -Infinity) >= 900) {
         this.probeAt.set(client.sessionId, now);
@@ -86,7 +98,10 @@ export class PartyRoom extends Room<{ state: PartyState }> {
       player.messageUntil = now + 4000;
     });
     this.onMessage('ping', (client, sent) => {
-      if (typeof sent === 'number' && Number.isFinite(sent)) client.send('pong', { sent, serverTime: Date.now() });
+      if (typeof sent === 'number' && Number.isFinite(sent)) {
+        const lease = (client as PartyClient).userData?.inputLeases?.issue(performance.now());
+        client.send('pong', { sent, serverTime: Date.now(), ...(lease ? { lease } : {}) });
+      }
     });
     this.onMessage('telemetry', (client, report) => {
       const role = (client as PartyClient).userData?.role;
@@ -139,6 +154,7 @@ export class PartyRoom extends Room<{ state: PartyState }> {
     this.diagnostics.joined();
     logger.info({ event: 'connection_join', roomId: this.roomId, connectionId: client.sessionId, role: auth.role });
     if (auth.role !== 'player') return;
+    if (auth.inputProtocol === 1) client.userData.inputLeases = new InputLeases();
     let id = this.identities.get(auth.userId!);
     let player = id ? this.state.players.get(id) : undefined;
     if (!player) {
@@ -162,9 +178,14 @@ export class PartyRoom extends Room<{ state: PartyState }> {
 
   onLeave(rawClient: Client, code?: number) {
     const client = rawClient as PartyClient;
+    // Colyseus 0.18 records this counter internally before closing a rate-limited socket.
+    const messagesInWindow = (client as Client & { _numMessagesLastSecond?: number })._numMessagesLastSecond ?? 0;
     this.diagnostics.left(client.sessionId);
     this.pendingProbes.delete(client.sessionId); this.probeAt.delete(client.sessionId); this.renderTraces.delete(client.sessionId);
-    logger.info({ event: 'connection_leave', roomId: this.roomId, connectionId: client.sessionId, role: client.userData?.role, code });
+    logger.info({ event: 'connection_leave', roomId: this.roomId, connectionId: client.sessionId, role: client.userData?.role, code,
+      messagesInWindow, messageLimit: this.maxMessagesPerSecond,
+      rateLimitExceeded: messagesInWindow > this.maxMessagesPerSecond,
+    });
     const id = client.userData?.playerId;
     if (!id || this.sessions.get(id) !== client.sessionId) return;
     this.sessions.delete(id); this.heldInputs.delete(id);
@@ -271,7 +292,7 @@ export class PartyRoom extends Room<{ state: PartyState }> {
     this.state.phase = 'results'; this.state.endsAt = 0; this.state.paused = false; this.heldInputs.clear();
     void persistResult(result).catch(error => {
       logger.error({ event: 'result_persistence_failed', roomId: this.roomId, err: error }, 'Result persistence failed');
-      this.clients.filter(c => (c as PartyClient).userData?.role === 'host').forEach(c => c.send('notice', 'The result is visible, but saving it to disk failed. Export it from the host screen.'));
+      this.clients.filter(c => (c as PartyClient).userData?.role === 'host').forEach(c => c.send('notice', 'The result is visible, but saving it failed. Export it from the host screen.'));
     });
   }
   private cleanup() {

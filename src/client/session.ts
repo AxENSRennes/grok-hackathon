@@ -4,6 +4,9 @@ import type { PartyState } from '../server/state';
 import { ensureGuestSession } from './auth';
 import { ClientTelemetry } from './telemetry';
 import { TELEMETRY_MS, type MovementProbe } from '../shared/telemetry';
+import { CONTROLLER_PING_MS, type InputLease } from '../shared/movement';
+import { ConnectionTiming } from './connection-timing';
+import { MovementSender } from './movement-sender';
 
 const endpoint = () => `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}${import.meta.env.DEV ? '/socket' : ''}`;
 export const emptySnapshot: Snapshot = { players: [], phase: 'lobby', question: null, zones: [], result: null, endsAt: 0, serverTime: Date.now(), paused: false, chatEnabled: true, hasPreviousQuestion: false, hasNextQuestion: true };
@@ -21,23 +24,31 @@ export class Session {
   status: Status = 'connected';
   playerId = '';
   rtt = 0;
-  offset = 0;
+  private timing = new ConnectionTiming();
+  private movement = new MovementSender();
+  get offset() { return (this.timing.serverNow(performance.now()) ?? Date.now()) - Date.now(); }
   notice = '';
   readonly telemetry = new ClientTelemetry();
   private listeners = new Set<() => void>();
   private pingTimer: ReturnType<typeof setInterval>;
   private telemetryTimer: ReturnType<typeof setInterval>;
+  private movementTimer: ReturnType<typeof setInterval>;
   private retryTimer?: ReturnType<typeof setTimeout>;
   private alive = true;
   private attempts = 0;
   private seq = 0;
-  private visibilityChanged = () => this.telemetry.reset();
+  private visibilityChanged = () => {
+    this.telemetry.reset(); this.timing.reset(true); this.movement.reset();
+    this.input(0, 0);
+    if (!document.hidden) this.ping();
+  };
   constructor(room: Room<PartyState>, private options: Record<string, unknown>) {
     this.room = room;
     this.bind(room);
-    this.pingTimer = setInterval(() => { if (this.status === 'connected') this.room.send('ping', performance.now()); }, 1000);
+    this.pingTimer = setInterval(() => this.ping(), options.role === 'player' ? CONTROLLER_PING_MS : 1000);
+    this.movementTimer = setInterval(() => this.flushMovement(), 25);
     this.telemetryTimer = setInterval(() => {
-      if (this.status === 'connected') this.room.send('telemetry', this.telemetry.report());
+      if (this.status === 'connected' && this.bufferedAmount() === 0) this.room.send('telemetry', this.telemetry.report());
     }, TELEMETRY_MS);
     document.addEventListener('visibilitychange', this.visibilityChanged);
   }
@@ -60,10 +71,14 @@ export class Session {
     });
     room.onMessage('identity', (data: { playerId: string }) => { this.playerId = data.playerId; this.emit(); });
     room.onMessage('notice', (notice: string) => { this.notice = notice; this.emit(); });
-    room.onMessage('pong', (data: { sent: number; serverTime: number }) => {
-      this.rtt = Math.round(performance.now() - data.sent);
-      if (!document.hidden) this.telemetry.add('rttMs', this.rtt);
-      this.offset = data.serverTime + this.rtt / 2 - Date.now();
+    room.onMessage('pong', (data: { sent: number; serverTime: number; lease?: InputLease }) => {
+      if (room !== this.room || document.hidden) return;
+      const now = performance.now();
+      const rtt = this.timing.received(data.sent, data.serverTime, now);
+      if (rtt === undefined) return;
+      this.rtt = Math.round(rtt);
+      this.telemetry.add('rttMs', this.rtt);
+      if (data.lease) { this.movement.renew(data.lease, rtt, now); this.flushMovement(); }
       this.emit();
     });
     room.onMessage('inputAck', (data: { seq: number; applied: boolean }) => { if (data.applied) this.telemetry.ack(data.seq); });
@@ -75,7 +90,7 @@ export class Session {
       this.status = 'reconnecting'; this.emit(); this.retry();
     });
     room.send('whoami');
-    room.send('ping', performance.now());
+    this.ping();
   }
   private retry() {
     if (!this.alive) return;
@@ -84,6 +99,7 @@ export class Session {
         const room = await new Client(endpoint()).joinById<PartyState>(this.room.roomId, this.options);
         if (!this.alive) { void room.leave(); return; }
         this.room = room; this.seq = 0; this.attempts = 0; this.status = 'connected'; this.notice = ''; this.telemetry.reset(true);
+        this.timing.reset(); this.movement.reset();
         this.bind(room); this.emit();
       } catch {
         this.attempts++;
@@ -93,9 +109,25 @@ export class Session {
     }, Math.min(500 * 2 ** this.attempts, 5000));
   }
   input(x: number, y: number) {
-    if (this.status !== 'connected') return;
+    if (this.status !== 'connected' || this.options.role !== 'player') return;
+    this.movement.set(x, y);
+    this.flushMovement();
+  }
+  private bufferedAmount() {
+    // Colyseus 0.18 exposes the native socket on its WebSocket transport.
+    const transport = this.room.connection.transport as { ws?: { bufferedAmount: number } };
+    return transport.ws?.bufferedAmount ?? 0;
+  }
+  private ping() {
+    if (this.status !== 'connected' || document.hidden || this.bufferedAmount() > 0) return;
+    const now = performance.now(); this.timing.sent(now); this.room.send('ping', now);
+  }
+  private flushMovement() {
+    if (this.status !== 'connected' || !this.room.connection.isOpen) return;
+    const input = this.movement.take(performance.now(), this.bufferedAmount(), this.options.inputProtocol === 1);
+    if (!input) return;
     const seq = ++this.seq;
-    this.room.send('input', { x, y, seq, ...(this.telemetry.probe(seq) ? { probe: true } : {}) });
+    this.room.send('input', { ...input, seq, ...(this.telemetry.probe(seq) ? { probe: true } : {}) });
   }
   recordFrame(delta: number) {
     this.telemetry.frame(delta, this.snapshot.players, this.offset, data => {
@@ -106,13 +138,13 @@ export class Session {
   chat(text: string) { if (this.status === 'connected') this.room.send('chat', text); }
   command(command: HostCommand) { if (this.status === 'connected') this.room.send('command', command); }
   close() {
-    this.alive = false; clearInterval(this.pingTimer); clearInterval(this.telemetryTimer); clearTimeout(this.retryTimer);
+    this.alive = false; clearInterval(this.pingTimer); clearInterval(this.telemetryTimer); clearInterval(this.movementTimer); clearTimeout(this.retryTimer);
     document.removeEventListener('visibilitychange', this.visibilityChanged);
     void this.room.leave();
   }
 }
 export async function joinSession(roomId: string, options: Record<string, unknown>) {
-  if (options.role === 'player') await ensureGuestSession();
+  if (options.role === 'player') { await ensureGuestSession(); options = { ...options, inputProtocol: 1 }; }
   const room = await new Client(endpoint()).joinById<PartyState>(roomId.toUpperCase(), options);
   return new Session(room, options);
 }

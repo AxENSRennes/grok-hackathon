@@ -1,12 +1,12 @@
-import pino from 'pino';
 import { monitorEventLoopDelay, performance } from 'node:perf_hooks';
 import { metricNames, Samples, telemetrySchema, type MetricName } from '../shared/telemetry.js';
 import type { Role } from '../shared/protocol.js';
+import { storage } from './storage/index.js';
+import { createDiagnosticLogger } from './logging.js';
 
-export const logger = pino({
-  level: process.env.LOG_LEVEL || 'info', base: { service: 'sidequest' },
-  redact: ['cookie', 'password', 'token', 'hostKey', 'authorization'],
-});
+const diagnostics = createDiagnosticLogger(storage.diagnostics);
+export const logger = diagnostics.logger;
+export const closeDiagnostics = diagnostics.close;
 const traceSeconds = Math.max(0, Math.min(300, Number(process.env.MOVEMENT_TRACE_SECONDS) || 0));
 const traceDeadline = performance.now() + traceSeconds * 1000;
 export const movementTracing = () => performance.now() < traceDeadline;
@@ -25,6 +25,7 @@ export class RoomDiagnostics {
   private leaves = 0;
   private invalidInputs = 0;
   private staleInputs = 0;
+  private expiredInputs = 0;
   private previousTick = 0;
   constructor(readonly roomId: string) {}
   tickStart() {
@@ -33,7 +34,10 @@ export class RoomDiagnostics {
     this.previousTick = now;
     return now;
   }
-  inputRejected(stale: boolean) { if (stale) this.staleInputs++; else this.invalidInputs++; }
+  inputRejected(stale: boolean, expired = false) {
+    if (stale) this.staleInputs++; else this.invalidInputs++;
+    if (expired) this.expiredInputs++;
+  }
   joined() { this.joins++; }
   left(sessionId: string) { this.leaves++; this.reportAt.delete(sessionId); }
   report(sessionId: string, role: Role, raw: unknown) {
@@ -60,10 +64,10 @@ export class RoomDiagnostics {
       })),
     }]));
     logger.info({ event: 'room_metrics', roomId: this.roomId, windowMs: 10_000, phase, players, clients: clients.length,
-      joins: this.joins, leaves: this.leaves, invalidInputs: this.invalidInputs, staleInputs: this.staleInputs,
+      joins: this.joins, leaves: this.leaves, invalidInputs: this.invalidInputs, staleInputs: this.staleInputs, expiredInputs: this.expiredInputs,
       tickMs: this.tickMs.summary(), tickGapMs: this.tickGapMs.summary(), inputWaitMs: this.inputWaitMs.summary(), roles,
     });
-    this.joins = 0; this.leaves = 0; this.invalidInputs = 0; this.staleInputs = 0;
+    this.joins = 0; this.leaves = 0; this.invalidInputs = 0; this.staleInputs = 0; this.expiredInputs = 0;
     for (const role of Object.values(this.roles)) {
       role.reports = 0; role.hiddenReports = 0; role.reconnects = 0;
       for (const name of metricNames) role.maxima[name] = null;
