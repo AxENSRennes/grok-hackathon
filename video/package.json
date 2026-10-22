@@ -1,0 +1,17 @@
+{
+  "name": "sidequest-presentation-video",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "remotion": "remotion",
+    "browser:ensure": "remotion browser ensure",
+    "check:versions": "remotion versions"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.538",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "remotion": "4.0.538"
+  }
+}

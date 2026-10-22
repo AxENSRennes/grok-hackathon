@@ -1,0 +1,17 @@
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  root: 'src/client',
+  plugins: [react()],
+  build: { outDir: '../../dist/client', emptyOutDir: true },
+  server: {
+    port: 5173,
+    strictPort: true,
+    proxy: {
+      '/api': 'http://127.0.0.1:2567',
+      '/matchmake': 'http://127.0.0.1:2567',
+      '/socket': { target: 'http://127.0.0.1:2567', ws: true, rewrite: (path) => path.replace(/^\/socket/, '') },
+    },
+  },
+});

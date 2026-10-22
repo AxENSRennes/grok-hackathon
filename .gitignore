@@ -1,0 +1,21 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.DS_Store
+coverage/
+playwright-report/
+test-results/
+data/
+*.log
+# Local account screenshots and deployment/operator notes.
+/supabase-*.png
+/cognee-*.png
+/design/*-checks/
+/deploy/README.md
+*.sqlite
+*.sqlite-*
+*.db
+*.pem
+*.key

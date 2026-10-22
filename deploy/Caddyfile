@@ -1,0 +1,12 @@
+play.colvenalabs.com {
+    encode zstd gzip
+    request_body {
+        max_size 32KB
+    }
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+    reverse_proxy 127.0.0.1:2567
+}
